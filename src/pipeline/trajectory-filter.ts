@@ -11,6 +11,10 @@ export interface TrajectoryStep {
   };
 }
 
+// Function-level circular import with correction-extractor.js (both sides
+// export hoisted function declarations only) — safe under ESM.
+import { isCorrectionText } from './correction-extractor.js';
+
 export interface PrunedTrajectory {
   errorRecoveryPairs: Array<{
     failedTool: string;
@@ -61,13 +65,16 @@ export class TrajectoryFilter {
     while (i < steps.length) {
       const step = steps[i];
 
-      // 1. Detect Explicit User Directives
+      // 1. Detect Explicit User Directives (a correction text belongs to the
+      //    correction extractor, not the rule track — avoids double counting)
       if (step.type === 'USER_INPUT') {
         const text = step.content.trim();
         if (
-          text.includes('不要') || text.includes('严禁') || text.includes('必须') ||
+          !isCorrectionText(text) &&
+          (text.includes('不要') || text.includes('严禁') || text.includes('必须') ||
+          text.includes('始终') || text.includes('统一') ||
           text.includes('don\'t') || text.includes('never') || text.includes('must') ||
-          text.includes('prefer') || text.includes('always')
+          text.includes('prefer') || text.includes('always'))
         ) {
           userDirectives.push(text);
         }

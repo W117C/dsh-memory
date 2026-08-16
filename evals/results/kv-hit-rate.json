@@ -1,0 +1,187 @@
+{
+  "model": "deepseek-v4-flash",
+  "baseUrl": "https://api.deepseek.com",
+  "turns": 8,
+  "tariff": "off-peak",
+  "measuredAt": "2026-08-16T19:45:22.256Z",
+  "headline": {
+    "baselineHitRatio": 0.947,
+    "twoTierHitRatio": 0.955,
+    "naiveHitRatio": 0.715,
+    "twoTierVsBaseline": 1.008,
+    "naiveExtraMissCostUsdPerConversation": 0.0007
+  },
+  "results": [
+    {
+      "strategy": "baseline",
+      "perTurn": [
+        {
+          "turn": 1,
+          "hit": 1280,
+          "miss": 8,
+          "total": 1288
+        },
+        {
+          "turn": 2,
+          "hit": 1280,
+          "miss": 31,
+          "total": 1311
+        },
+        {
+          "turn": 3,
+          "hit": 1280,
+          "miss": 54,
+          "total": 1334
+        },
+        {
+          "turn": 4,
+          "hit": 1280,
+          "miss": 77,
+          "total": 1357
+        },
+        {
+          "turn": 5,
+          "hit": 1280,
+          "miss": 100,
+          "total": 1380
+        },
+        {
+          "turn": 6,
+          "hit": 1280,
+          "miss": 123,
+          "total": 1403
+        },
+        {
+          "turn": 7,
+          "hit": 1280,
+          "miss": 146,
+          "total": 1426
+        },
+        {
+          "turn": 8,
+          "hit": 1408,
+          "miss": 41,
+          "total": 1449
+        }
+      ],
+      "hitTokens": 10368,
+      "missTokens": 580,
+      "hitRatio": 0.947,
+      "estInputCostUsd": 0.0002
+    },
+    {
+      "strategy": "two-tier",
+      "perTurn": [
+        {
+          "turn": 1,
+          "hit": 1408,
+          "miss": 109,
+          "total": 1517
+        },
+        {
+          "turn": 2,
+          "hit": 1536,
+          "miss": 55,
+          "total": 1591
+        },
+        {
+          "turn": 3,
+          "hit": 1664,
+          "miss": 1,
+          "total": 1665
+        },
+        {
+          "turn": 4,
+          "hit": 1664,
+          "miss": 75,
+          "total": 1739
+        },
+        {
+          "turn": 5,
+          "hit": 1792,
+          "miss": 21,
+          "total": 1813
+        },
+        {
+          "turn": 6,
+          "hit": 1792,
+          "miss": 95,
+          "total": 1887
+        },
+        {
+          "turn": 7,
+          "hit": 1792,
+          "miss": 169,
+          "total": 1961
+        },
+        {
+          "turn": 8,
+          "hit": 1920,
+          "miss": 115,
+          "total": 2035
+        }
+      ],
+      "hitTokens": 13568,
+      "missTokens": 640,
+      "hitRatio": 0.955,
+      "estInputCostUsd": 0.0002
+    },
+    {
+      "strategy": "naive",
+      "perTurn": [
+        {
+          "turn": 1,
+          "hit": 1152,
+          "miss": 379,
+          "total": 1531
+        },
+        {
+          "turn": 2,
+          "hit": 1152,
+          "miss": 402,
+          "total": 1554
+        },
+        {
+          "turn": 3,
+          "hit": 1152,
+          "miss": 425,
+          "total": 1577
+        },
+        {
+          "turn": 4,
+          "hit": 1152,
+          "miss": 448,
+          "total": 1600
+        },
+        {
+          "turn": 5,
+          "hit": 1152,
+          "miss": 471,
+          "total": 1623
+        },
+        {
+          "turn": 6,
+          "hit": 1152,
+          "miss": 494,
+          "total": 1646
+        },
+        {
+          "turn": 7,
+          "hit": 1152,
+          "miss": 517,
+          "total": 1669
+        },
+        {
+          "turn": 8,
+          "hit": 1152,
+          "miss": 540,
+          "total": 1692
+        }
+      ],
+      "hitTokens": 9216,
+      "missTokens": 3676,
+      "hitRatio": 0.715,
+      "estInputCostUsd": 0.0009
+    }
+  ]
+}

@@ -2,6 +2,8 @@
 
 专为 **DeepSeek Harness (`dsh`)** 打造的原生认知记忆系统插件。深度适配 **DeepSeek-V4 模型**（默认 `deepseek-v4-flash`，KV-Cache 前缀缓存语义对齐）与 **dsh 真实插件体系**（`@deepseek-ai/cordis` v4 微内核 + 原生 Slots Web UI），能力面对标 GitHub 顶级开源记忆项目（mem0 / Zep / Letta / Cognee）。
 
+> 📊 **实测效果见 [EFFECTS.md](./EFFECTS.md)**：真机 KV 命中率 two-tier 95.5% ≈ 无记忆基线 94.7%（朴素重写 71.5%，成本 4.5×）；蒸馏 macro F1 1.000（L1）；多跳检索 both-gold@5 0.60→**0.80**；**LongMemEval-S 官方子集 evidence@1 = 0.84**；5K 记忆压测检索 p95 = 10ms；跨项目泄漏 0。全部可复现（`evals/`）。
+
 ## 📊 能力矩阵（对标顶级开源记忆项目）
 
 | 能力 | mem0 | Zep/Graphiti | Letta | Cognee | **本插件** |
@@ -105,8 +107,11 @@ dsh plugin --profile web add @dsh-plugins/memory
     distillation:
       llmProvider: deepseek-official   # 与 dsh 基座一致的默认路由
       distillModel: deepseek-v4-flash  # DeepSeek-V4 flash 蒸馏
+      offPeakOnly: false               # true = 推迟到谷时窗口蒸馏 (半价)
     prompt:
       enabled: true                    # section + context 双层注入
+    retrieval:
+      queryRewrite: false              # true = 检索前 Flash 改写抽象查询 (双查询 max 合并, ≈$0.0001/次)
     web:
       enabled: true
       routePrefix: /api/memory
@@ -136,6 +141,25 @@ pnpm typecheck    # 宿主与 client 双 tsconfig 类型检查
 测试直接跑在**真实 cordis v4** 上：服务经 `ctx.reflect.provide()` 注入契约一致的桩（tools / systemPrompt / httpServer / llm），验证注册、KV-cache 字节稳定性、工具执行、会话蒸馏与 fiber 卸载回收；client bundle 经伪造 `__ModuleLoader__` 走真实加载路径并做 SSR 渲染断言。
 
 ---
+
+## 🔎 v2.3.0：语义检索升级（多跳 0.60 → 0.80）
+
+- **本地 ONNX 嵌入自愈**：损坏/截断的模型缓存自动清理重试；加载超时可配（`embedding.loadTimeoutMs`）；启动后台预热；`adapter.mode` 可查实际模式。
+- **Flash 查询改写**（`retrieval.queryRewrite`）：抽象/口语查询先改写为关键词（few-shot 提示 + `thinking: disabled`），**双查询 max 合并**保证坏改写永不丢分；成本入账 `query-rewrite`。
+- **内容侧向量**：文档嵌入纳入正文前 300 字（此前只嵌 summary，语义信号不足）。
+- **纠错加成**：correction 记忆主题命中 +0.05（与工作集纠错专区一致）。
+
+## 🤖 v2.2.0：自用体验层 + 编排集成面
+
+- **用户级作用域**：默认单一用户库 `~/.dsh/memory.db`；`scope='global'` 记忆跨项目跟随用户，`workspace` 记忆按写入项目（`origin_cwd`）隔离，旧数据保持全局可见。
+- **纠错记忆（correction）**：自动识别「用户否定 → 行为修正」对（中英双语模式），`global + verified` 高信任落地，工作集顶部最高优先级注入——对齐 Claude Code auto memory 最受好评的体验。
+- **Markdown 投影**：`GET /api/memory/export?format=markdown` 导出 `MEMORY.md` + 每条记忆一个 frontmatter 文档（可 git、可手改），`POST /api/memory/import` 幂等回导（按 id 新增/更新/跳过）。
+- **成本观测**：`GET /api/memory/cost?days=7` 按用途/模型聚合 token 与费用（峰谷感知，官方 2026-08-16 价目），估算值显式标记。
+- **谷时调度**：`distillation.offPeakOnly: true` 把会话蒸馏推迟到下一谷时窗口（UTC 01–04/06–10 之外，半价），`maxDeferHours` 兜底。
+- **dsh-ultra 编排集成面**：
+  - `GET /api/memory/working-set?filePath=&branch=` → 相同输入返回字节级一致的工作集（编排器给每个子代理注入同一前缀 → 全 workflow 共享 V4 前缀缓存）；
+  - `POST /api/memory/subagent/context|stage|merge|discard` → 并行子代理记忆的分帧暂存与 3-way 无损合并。
+- **效果回归**：`evals/` 四套评测（KV 命中率 / 蒸馏质量 / 单跳召回 / 多跳基准），`node evals/*.mjs` 即可复现 [EFFECTS.md](./EFFECTS.md) 全部数字。
 
 ## 📄 开源许可证
 

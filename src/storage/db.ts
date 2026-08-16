@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import * as fs from 'node:fs';
+import * as os from 'node:os';
 import * as path from 'node:path';
 import { MemoryConfig } from '../config.js';
 import { MemoryRecord, MemoryCreateInput, MemoryUpdateInput, MemoryRelation, MemoryStats, MemoryHistoryRecord } from '../types/memory.js';
@@ -11,6 +12,7 @@ import { redactSecrets } from '../core/secret-redactor.js';
 export interface ExtendedMemoryUpdateInput extends MemoryUpdateInput {
   verification_count?: number;
   error_signature?: string;
+  reason?: string;
 }
 
 export class MemoryStore {
@@ -61,7 +63,24 @@ export class MemoryStore {
     if (config.storage.workspaceDbPath) {
       return config.storage.workspaceDbPath;
     }
-    return path.join(process.cwd(), '.dsh', 'memory.db');
+    if (config.storage.globalDbPath) {
+      return config.storage.globalDbPath;
+    }
+    // Single user-level store by default: scope='global' memories follow the
+    // user across projects; scope='workspace' rows are isolated per project
+    // through the origin_cwd visibility rule (legacy '*' rows stay visible).
+    return path.join(os.homedir(), '.dsh', 'memory.db');
+  }
+
+  /**
+   * Origin visibility: global-scope rows are always visible; workspace rows
+   * are visible inside their originating project; legacy rows stamped '*'
+   * (pre-v2.2 or hand-seeded) remain visible everywhere.
+   */
+  public isOriginVisible(memory: Pick<MemoryRecord, 'scope' | 'origin_cwd'>, cwd: string = process.cwd()): boolean {
+    if (memory.scope === 'global') return true;
+    if (!memory.origin_cwd || memory.origin_cwd === '*') return true;
+    return path.resolve(memory.origin_cwd) === path.resolve(cwd);
   }
 
   private ensureDirectoryExists(filePath: string): void {
@@ -88,6 +107,7 @@ export class MemoryStore {
         solution_code TEXT,
         git_branch TEXT DEFAULT '*',
         git_commit TEXT,
+        origin_cwd TEXT DEFAULT '*',
         verification_count INTEGER DEFAULT 0,
         importance REAL DEFAULT 1.0,
         access_count INTEGER DEFAULT 0,
@@ -102,6 +122,7 @@ export class MemoryStore {
       CREATE INDEX IF NOT EXISTS idx_mem_entity ON memories(entity_key) WHERE invalid_at IS NULL;
       CREATE INDEX IF NOT EXISTS idx_mem_path ON memories(path_pattern);
       CREATE INDEX IF NOT EXISTS idx_mem_branch ON memories(git_branch);
+      CREATE INDEX IF NOT EXISTS idx_mem_origin ON memories(origin_cwd);
 
       CREATE TABLE IF NOT EXISTS memory_relations (
         source_entity TEXT NOT NULL,
@@ -132,12 +153,19 @@ export class MemoryStore {
       this.db.exec('ALTER TABLE memories ADD COLUMN git_branch TEXT DEFAULT "*"');
     } catch {}
     try {
-      this.db.exec('ALTER TABLE memories ADD COLUMN git_commit TEXT');
+      this.db.exec('ALTER TABLE memories ADD COLUMN git_commit TEXT')
+    } catch {}
+    try {
+      this.db.exec('ALTER TABLE memories ADD COLUMN origin_cwd TEXT DEFAULT "*"');
+      this.db.exec('CREATE INDEX IF NOT EXISTS idx_mem_origin ON memories(origin_cwd)');
     } catch {}
   }
 
   public async createMemory(input: MemoryCreateInput): Promise<MemoryRecord> {
-    const id = `mem_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const id =
+      input.id && /^mem_[A-Za-z0-9_-]{1,120}$/.test(input.id)
+        ? input.id
+        : `mem_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     const now = Date.now();
 
     // Pervasive Secret Redaction before persistence
@@ -161,6 +189,7 @@ export class MemoryStore {
       solution_code: sanitizedSolution,
       git_branch: input.git_branch || '*',
       git_commit: input.git_commit,
+      origin_cwd: (input.scope || 'workspace') === 'global' ? '*' : process.cwd(),
       verification_count: input.status === 'verified' ? 1 : 0,
       importance: input.importance ?? 1.0,
       access_count: 0,
@@ -169,9 +198,11 @@ export class MemoryStore {
       last_accessed_at: now,
       valid_from: now,
       invalid_at: null
-    };
+    } as MemoryRecord;
 
-    const textToEmbed = `${record.summary} ${record.entity_key || ''} ${record.error_signature || ''}`;
+    // Document-side embedding: summary + keys carry the salient terms, the
+    // content head adds the semantic body summaries alone are too terse for.
+    const textToEmbed = `${record.summary} ${record.entity_key || ''} ${record.error_signature || ''} ${sanitizedContent.slice(0, 300)}`;
     const embedding = await this.embeddingAdapter.embed(textToEmbed, false);
 
     const insertTx = this.db.transaction(() => {
@@ -179,13 +210,13 @@ export class MemoryStore {
         INSERT INTO memories (
           id, scope, tier, category, status, content, summary,
           entity_key, path_pattern, error_signature, solution_code,
-          git_branch, git_commit,
+          git_branch, git_commit, origin_cwd,
           verification_count, importance, access_count,
           created_at, updated_at, last_accessed_at, valid_from, invalid_at
         ) VALUES (
           @id, @scope, @tier, @category, @status, @content, @summary,
           @entity_key, @path_pattern, @error_signature, @solution_code,
-          @git_branch, @git_commit,
+          @git_branch, @git_commit, @origin_cwd,
           @verification_count, @importance, @access_count,
           @created_at, @updated_at, @last_accessed_at, @valid_from, @invalid_at
         )

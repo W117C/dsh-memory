@@ -1,0 +1,24 @@
+{
+  "memories": 5000,
+  "engine": "store+retriever at onnx-local embeddings",
+  "seeding": {
+    "seconds": 33.531,
+    "opsPerSecond": 149
+  },
+  "retrievalMs": {
+    "samples": 40,
+    "p50": 6,
+    "p95": 10,
+    "p99": 14,
+    "max": 14
+  },
+  "goldRecall": {
+    "at5": 0.7,
+    "at10": 0.75
+  },
+  "workingSetBuildMs": {
+    "median": 4,
+    "max": 7
+  },
+  "dbSizeBytes": 37847040
+}

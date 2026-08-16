@@ -3,59 +3,117 @@ import { MemoryConfig } from '../config.js';
 import { MemoryRecord, RecallOptions, ScoredMemory } from '../types/memory.js';
 import { extractErrorFingerprint } from './error-fingerprint.js';
 
+export type QueryRewriter = (query: string) => Promise<string>;
+
+/** Retrieval signal maps, max-merged across every query variant. */
+interface SignalMaps {
+  vector: Map<string, number>;
+  bm25: Map<string, number>;
+}
+
 export class HybridRetriever {
   constructor(
     private store: MemoryStore,
-    private config: MemoryConfig['retrieval']
+    private config: MemoryConfig['retrieval'],
+    private rewriter?: QueryRewriter
   ) {}
 
   public async retrieve(query: string, options: RecallOptions = {}): Promise<ScoredMemory[]> {
     const topK = options.topK ?? this.config.defaultTopK;
     const minScore = options.minScore ?? this.config.minScore;
-    const currentFilePath = options.currentFilePath || '';
-    const currentGitBranch = options.currentGitBranch || '';
     const now = Date.now();
 
-    // Context-Aware Error Fingerprint from Query
-    const queryFp = extractErrorFingerprint(query);
-    const isErrorQuery = queryFp.errorType !== 'RUNTIME_EXCEPTION' || query.toLowerCase().includes('error');
+    // Query variants: raw query always; rewritten query when a rewriter is
+    // configured (failure degrades to raw-only). All variants are searched
+    // and max-merged, so a weak variant can never lose what another found.
+    const queries: string[] = [query];
+    if (this.rewriter) {
+      try {
+        const rewritten = await this.rewriter(query);
+        if (rewritten && rewritten !== query) queries.push(rewritten);
+      } catch {
+        // fall back to the raw query only
+      }
+    }
 
-    // 1. Vector Search
+    const maps = await this.collectSignals(queries);
+
+    // Pseudo-relevance feedback (local & free): expand with the entity keys /
+    // signatures of the first pass's top hits, closing the cold-vocabulary
+    // gap (the query lacks a term that only exists inside stored memories).
+    if (this.config.prf !== false) {
+      const firstPass = this.scoreCandidates(maps, query, options, minScore, now);
+      const expansionSource = firstPass.slice(0, 3);
+      if (expansionSource.length > 0) {
+        const expansion = expansionSource
+          .map((s) => `${s.memory.summary} ${s.memory.entity_key ?? ''} ${s.memory.error_signature ?? ''}`.trim())
+          .join(' ')
+          .slice(0, 400);
+        await this.collectSignals([expansion], maps);
+      }
+    }
+
+    const scoredList = this.scoreCandidates(maps, query, options, minScore, now);
+    scoredList.sort((a, b) => b.score - a.score);
+    const results = scoredList.slice(0, topK);
+
+    for (const res of results) {
+      this.store.recordMemoryAccess(res.memory.id);
+    }
+
+    return results;
+  }
+
+  /** Vector + BM25 for every query, max-merged into `maps` (created when absent). */
+  private async collectSignals(queries: string[], maps?: SignalMaps): Promise<SignalMaps> {
+    const result: SignalMaps = maps ?? { vector: new Map(), bm25: new Map() };
     const embeddingAdapter = this.store.getEmbeddingAdapter();
-    const queryVec = await embeddingAdapter.embed(query, true);
-    const vectorMatches = this.store.getVectorStore().search(queryVec, topK * 3);
-    const vectorScoreMap = new Map<string, number>();
-    for (const vm of vectorMatches) {
-      vectorScoreMap.set(vm.id, vm.similarity);
-    }
+    const topK = this.config.defaultTopK;
 
-    // 2. FTS5 BM25 Search
-    const ftsMatches = this.store.getFtsStore().searchFts(query, topK * 3);
-    const bm25ScoreMap = new Map<string, number>();
-    for (const fm of ftsMatches) {
-      bm25ScoreMap.set(fm.id, fm.bm25Score);
+    for (const q of queries) {
+      const queryVec = await embeddingAdapter.embed(q, true);
+      for (const vm of this.store.getVectorStore().search(queryVec, topK * 4)) {
+        result.vector.set(vm.id, Math.max(result.vector.get(vm.id) ?? 0, vm.similarity));
+      }
+      for (const fm of this.store.getFtsStore().searchFts(q, topK * 4)) {
+        result.bm25.set(fm.id, Math.max(result.bm25.get(fm.id) ?? 0, fm.bm25Score));
+      }
     }
+    return result;
+  }
 
-    // 3. Collect all candidate memory IDs
-    const candidateIds = new Set<string>([
-      ...vectorScoreMap.keys(),
-      ...bm25ScoreMap.keys()
-    ]);
+  /** Filter, boost, and composite-score every candidate id in the signal maps. */
+  private scoreCandidates(
+    maps: SignalMaps,
+    query: string,
+    options: RecallOptions,
+    minScore: number,
+    now: number
+  ): ScoredMemory[] {
+    const currentFilePath = options.currentFilePath || '';
+    const currentGitBranch = options.currentGitBranch || '';
+    const candidateIds = new Set<string>([...maps.vector.keys(), ...maps.bm25.keys()]);
 
     if (candidateIds.size === 0) {
+      // Cold-store fallback: importance-ranked ids (origin-visible only).
       const stmt = this.store.getDb().prepare(`
         SELECT id FROM memories
         WHERE (invalid_at IS NULL OR invalid_at > ?)
+          AND (scope = 'global' OR origin_cwd IS NULL OR origin_cwd = '*' OR origin_cwd = ?)
         ORDER BY importance DESC, last_accessed_at DESC
         LIMIT ?
       `);
-      const fallbackRows = stmt.all(now, topK) as Array<{ id: string }>;
+      const fallbackRows = stmt.all(now, process.cwd(), this.config.defaultTopK) as Array<{ id: string }>;
       for (const r of fallbackRows) candidateIds.add(r.id);
     }
 
-    // 4. Fetch full records & compute composite scores with Domain Guard & Git Branch Visibility
-    const scoredList: ScoredMemory[] = [];
+    // Error fingerprints always come from the RAW query: signatures match
+    // literal text, not paraphrases.
+    const queryFp = extractErrorFingerprint(query);
+    const isErrorQuery = queryFp.errorType !== 'RUNTIME_EXCEPTION' || query.toLowerCase().includes('error');
     const queryLower = query.toLowerCase();
+
+    const scoredList: ScoredMemory[] = [];
 
     for (const id of candidateIds) {
       const memory = this.store.getMemoryById(id);
@@ -86,6 +144,12 @@ export class HybridRetriever {
         continue;
       }
 
+      // Project-origin visibility (user-level scope): workspace rows only
+      // surface inside their originating project; global rows follow the user.
+      if (!this.store.isOriginVisible(memory)) {
+        continue;
+      }
+
       // Monorepo Path-pattern filter
       if (currentFilePath && !this.matchesPathPattern(currentFilePath, memory.path_pattern)) {
         continue;
@@ -105,12 +169,12 @@ export class HybridRetriever {
       }
 
       // Component scores
-      let vecScore = vectorScoreMap.get(id) || 0.0;
-      let bm25Score = bm25ScoreMap.get(id) || 0.0;
+      let vecScore = maps.vector.get(id) || 0.0;
+      let bm25Score = maps.bm25.get(id) || 0.0;
       const recencyScore = this.calculateRecencyScore(memory.last_accessed_at, now);
       const importanceScore = this.calculateImportanceScore(memory.importance, memory.access_count);
 
-      // Exact signature / entity key match boost
+      // Exact signature / entity key match boost (raw query)
       if (memory.entity_key && queryLower.includes(memory.entity_key.toLowerCase())) {
         bm25Score = Math.max(bm25Score, 0.95);
       }
@@ -132,10 +196,15 @@ export class HybridRetriever {
         this.config.importanceWeight * importanceScore
       );
 
-      if (totalScore >= minScore) {
+      // User-authored corrections are privileged ground truth: on a topical
+      // match they should outrank ordinary facts of equal relevance (bounded
+      // boost, consistent with the working set's dedicated top section).
+      const finalScore = memory.category === 'correction' ? totalScore + 0.05 : totalScore;
+
+      if (finalScore >= minScore) {
         scoredList.push({
           memory,
-          score: totalScore,
+          score: finalScore,
           breakdown: {
             vectorScore: vecScore,
             bm25Score,
@@ -147,13 +216,7 @@ export class HybridRetriever {
     }
 
     scoredList.sort((a, b) => b.score - a.score);
-    const results = scoredList.slice(0, topK);
-
-    for (const res of results) {
-      this.store.recordMemoryAccess(res.memory.id);
-    }
-
-    return results;
+    return scoredList;
   }
 
   private isBranchVisible(currentBranch: string, memoryBranch?: string): boolean {

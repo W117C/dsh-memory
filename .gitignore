@@ -20,3 +20,6 @@ credentials*.yaml
 *.log
 npm-debug.log*
 *.tgz
+
+# eval datasets (auto-downloaded by evals/*.mjs on first run)
+evals/data/

@@ -238,7 +238,12 @@ describe('Native dsh integration: Cordis v4 + registry surfaces', () => {
     const before = memoryService.getStats().total;
     ctx.emit('session/disposed', { id: 'session_distill' });
 
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    // Distillation is async (embedding init may race its load timeout), so
+    // poll until the store grows rather than betting on a fixed sleep.
+    const deadline = Date.now() + 8000;
+    while (memoryService.getStats().total <= before && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
     expect(memoryService.getStats().total).toBeGreaterThan(before);
 
     await h.fiber.dispose();

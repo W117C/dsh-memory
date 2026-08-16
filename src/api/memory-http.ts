@@ -51,6 +51,14 @@ export interface MemoryApiSurface {
   getAllHistory(limit?: number): unknown[];
   exportJsonl(options?: { includeDeprecated?: boolean; scope?: 'workspace' | 'global' }): string;
   importJsonl(jsonl: string): Promise<{ processed: number; added: number; ignored: number; overwritten: number; invalidLines: number }>;
+  exportMarkdown(options?: { includeDeprecated?: boolean; scope?: 'workspace' | 'global' }): { files: Record<string, string>; count: number };
+  importMarkdown(input: Record<string, string> | string): Promise<{ processed: number; added: number; updated: number; unchanged: number; invalid: number }>;
+  getCostReport(sinceDays?: number): unknown;
+  getOrchestratorWorkingSet(currentFilePath?: string, currentGitBranch?: string): { text: string; approxTokens: number };
+  createSubagentContext(parentSessionId: string, subagentId: string): unknown;
+  stageSubagentMemory(subagentId: string, memoryInput: MemoryCreateInput): boolean;
+  mergeSubagentOnSuccess(subagentId: string): Promise<unknown>;
+  discardSubagentOnFailure(subagentId: string): void;
 }
 
 export class MemoryHttpApi {
@@ -133,6 +141,13 @@ export class MemoryHttpApi {
     }
 
     if (method === 'GET' && pathOnly === '/export') {
+      if (query.get('format') === 'markdown') {
+        const exportResult = this.surface.exportMarkdown({
+          includeDeprecated: query.get('all') === '1',
+          scope: sanitizeEnum(query.get('scope'), ['workspace', 'global']) as 'workspace' | 'global' | undefined
+        });
+        return exportResult;
+      }
       const body = this.surface.exportJsonl({
         includeDeprecated: query.get('all') === '1',
         scope: sanitizeEnum(query.get('scope'), ['workspace', 'global']) as 'workspace' | 'global' | undefined
@@ -142,9 +157,19 @@ export class MemoryHttpApi {
 
     if (method === 'POST' && pathOnly === '/import') {
       const body = await readJsonBody(req);
-      if (typeof body.jsonl !== 'string') throw new Error('jsonl required');
-      if (body.jsonl.length > 10_000_000) throw new Error('jsonl too large');
-      return this.surface.importJsonl(body.jsonl);
+      if (typeof body.jsonl === 'string') {
+        if (body.jsonl.length > 10_000_000) throw new Error('jsonl too large');
+        return this.surface.importJsonl(body.jsonl);
+      }
+      if (typeof body.markdown === 'string' || (body.files && typeof body.files === 'object')) {
+        const markdownInput = typeof body.markdown === 'string' ? body.markdown : body.files as Record<string, string>;
+        const totalLength = typeof markdownInput === 'string'
+          ? markdownInput.length
+          : Object.values(markdownInput).reduce((n, v) => n + (typeof v === 'string' ? v.length : 0), 0);
+        if (totalLength > 10_000_000) throw new Error('markdown too large');
+        return this.surface.importMarkdown(markdownInput);
+      }
+      throw new Error('jsonl or markdown required');
     }
 
     if (method === 'POST' && pathOnly === '/remember/batch') {
@@ -169,6 +194,50 @@ export class MemoryHttpApi {
       });
     }
 
+    // ---- Cost observability (P1) ----
+    if (method === 'GET' && pathOnly === '/cost') {
+      const days = sanitizeLimit(query.get('days'));
+      return this.surface.getCostReport(days && days > 0 && days <= 365 ? days : 7);
+    }
+
+    // ---- dsh-ultra orchestrator integration surface (P2) ----
+    if (method === 'GET' && pathOnly === '/working-set') {
+      const filePath = (query.get('filePath') ?? query.get('file') ?? '').slice(0, 500);
+      const branch = (query.get('branch') ?? '').slice(0, 200);
+      return this.surface.getOrchestratorWorkingSet(filePath, branch);
+    }
+
+    if (method === 'POST' && pathOnly === '/subagent/context') {
+      const body = await readJsonBody(req);
+      if (typeof body.parentSessionId !== 'string' || typeof body.subagentId !== 'string') {
+        throw new Error('parentSessionId and subagentId required');
+      }
+      return this.surface.createSubagentContext(body.parentSessionId.slice(0, 200), body.subagentId.slice(0, 200));
+    }
+
+    if (method === 'POST' && pathOnly === '/subagent/stage') {
+      const body = await readJsonBody(req);
+      if (typeof body.subagentId !== 'string' || !body.memory || typeof body.memory !== 'object') {
+        throw new Error('subagentId and memory required');
+      }
+      const ok = this.surface.stageSubagentMemory(body.subagentId.slice(0, 200), body.memory as MemoryCreateInput);
+      if (!ok) throw new Error('unknown subagentId (create /subagent/context first)');
+      return { staged: true };
+    }
+
+    if (method === 'POST' && pathOnly === '/subagent/merge') {
+      const body = await readJsonBody(req);
+      if (typeof body.subagentId !== 'string') throw new Error('subagentId required');
+      return this.surface.mergeSubagentOnSuccess(body.subagentId.slice(0, 200));
+    }
+
+    if (method === 'POST' && pathOnly === '/subagent/discard') {
+      const body = await readJsonBody(req);
+      if (typeof body.subagentId !== 'string') throw new Error('subagentId required');
+      this.surface.discardSubagentOnFailure(body.subagentId.slice(0, 200));
+      return { discarded: true };
+    }
+
     throw new Error(`no route: ${method} ${pathOnly}`);
   }
 }
@@ -187,8 +256,10 @@ export function registerMemoryHttpApi(
   store: MemoryStore,
   retriever: HybridRetriever,
   surface: MemoryApiSurface,
-  routePrefix: string
+  workingSetBuilder?: unknown,
+  routePrefix: string = '/api/memory'
 ): (() => void) | undefined {
+  void workingSetBuilder; // reserved: builder access is reached through the service surface
   const httpServer = getHttpServer(ctx);
   if (!httpServer) return undefined;
 

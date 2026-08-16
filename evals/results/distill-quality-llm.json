@@ -1,0 +1,443 @@
+{
+  "engine": "llm-semantic-augmented (deepseek-v4-flash, same schema/prompt as TrajectoryDistiller L2)",
+  "cases": 11,
+  "perCategory": {
+    "directives": {
+      "precision": 0.05,
+      "recall": 0.25,
+      "f1": 0.083,
+      "tp": 1,
+      "fp": 19,
+      "fn": 3
+    },
+    "post_mortems": {
+      "precision": 0.5,
+      "recall": 0.75,
+      "f1": 0.6,
+      "tp": 3,
+      "fp": 3,
+      "fn": 1
+    },
+    "recipes": {
+      "precision": 0.091,
+      "recall": 1,
+      "f1": 0.167,
+      "tp": 1,
+      "fp": 10,
+      "fn": 0
+    },
+    "corrections": {
+      "precision": 0.333,
+      "recall": 0.5,
+      "f1": 0.4,
+      "tp": 2,
+      "fp": 4,
+      "fn": 2
+    }
+  },
+  "macroF1": 0.313,
+  "perCase": [
+    {
+      "id": "t1_pnpm_correction",
+      "directives": {
+        "gold": 0,
+        "predicted": 2,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": [
+          "repo_package_manager This repository standardizes on pnpm as",
+          "lodash_install_state lodash was initially installed with npm"
+        ]
+      },
+      "post_mortems": {
+        "gold": 0,
+        "predicted": 1,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": [
+          "npm install <package> in a pnpm-managed repository Agent def"
+        ]
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 1,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": [
+          "Install a dependency in this project pnpm add <package>"
+        ]
+      },
+      "corrections": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "fpItems": []
+      }
+    },
+    {
+      "id": "t2_must_test_rule",
+      "directives": {
+        "gold": 1,
+        "predicted": 3,
+        "tp": 0,
+        "fn": 1,
+        "fpItems": [
+          "project.package_manager The project uses pnpm as its package",
+          "project.test_suite The project's test suite currently has 12",
+          "project.commit_policy A mandatory pre-commit gate was establ"
+        ]
+      },
+      "post_mortems": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 1,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": [
+          "Pre-commit test gate pnpm test"
+        ]
+      },
+      "corrections": {
+        "gold": 0,
+        "predicted": 1,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": [
+          "User instructed: '以后每次提交前必须先跑 pnpm test，测试不过不许提交' (before ev"
+        ]
+      }
+    },
+    {
+      "id": "t3_error_recovery",
+      "directives": {
+        "gold": 0,
+        "predicted": 2,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": [
+          "react-dom react-dom 18.3.1 was installed via pnpm to resolve",
+          "pnpm build After installing react-dom, pnpm build completed "
+        ]
+      },
+      "post_mortems": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "fpItems": []
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 2,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": [
+          "Fix missing dependency that breaks the build pnpm add <missi",
+          "Run the build pnpm build"
+        ]
+      },
+      "corrections": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      }
+    },
+    {
+      "id": "t4_ts_error_recovery",
+      "directives": {
+        "gold": 0,
+        "predicted": 3,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": [
+          "typescript-optional-array An optional array property (e.g., ",
+          "nullish-coalescing-default-array Use (items ?? []).map(...) ",
+          "tsc-no-emit-verification Running `tsc --noEmit` is a fast wa"
+        ]
+      },
+      "post_mortems": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "fpItems": []
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 1,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": [
+          "Fix runtime TypeError on optional array map 1. Locate the ar"
+        ]
+      },
+      "corrections": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      }
+    },
+    {
+      "id": "t5_recipe_build",
+      "directives": {
+        "gold": 0,
+        "predicted": 1,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": [
+          "project.build_validation The project uses `pnpm build && pnp"
+        ]
+      },
+      "post_mortems": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "recipes": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "fpItems": []
+      },
+      "corrections": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      }
+    },
+    {
+      "id": "t6_english_correction",
+      "directives": {
+        "gold": 0,
+        "predicted": 2,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": [
+          "auth_mechanism The project's auth module uses JWT (JSON Web ",
+          "src/auth/jwt.ts A file src/auth/jwt.ts was created as part o"
+        ]
+      },
+      "post_mortems": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 1,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": [
+          "Generate auth module with JWT Interpret the user's auth requ"
+        ]
+      },
+      "corrections": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 0,
+        "fn": 1,
+        "fpItems": [
+          "Agent initially generated an auth module using session cooki"
+        ]
+      }
+    },
+    {
+      "id": "t7_mixed",
+      "directives": {
+        "gold": 1,
+        "predicted": 2,
+        "tp": 0,
+        "fn": 1,
+        "fpItems": [
+          "deployment_environment Before deployment, environment variab",
+          "database_connection Database must not be connected directly "
+        ]
+      },
+      "post_mortems": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "fpItems": []
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 1,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": [
+          "Deploy with local database dependency 1. Load .env.productio"
+        ]
+      },
+      "corrections": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 0,
+        "fn": 1,
+        "fpItems": [
+          "Agent attempted to connect directly to Postgres on port 5432"
+        ]
+      }
+    },
+    {
+      "id": "t8_noise_only",
+      "directives": {
+        "gold": 0,
+        "predicted": 1,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": [
+          "target_file The file implements a collection of utility func"
+        ]
+      },
+      "post_mortems": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 1,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": [
+          "Review a code file 1. Read the target file. 2. Summarize its"
+        ]
+      },
+      "corrections": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      }
+    },
+    {
+      "id": "t9_subtle_correction",
+      "directives": {
+        "gold": 0,
+        "predicted": 3,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": [
+          "list implementation preference User requested converting lis",
+          "react-virtualized The agent introduced react-virtualized to ",
+          "pagination implementation The previous pagination-based impl"
+        ]
+      },
+      "post_mortems": {
+        "gold": 0,
+        "predicted": 1,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": [
+          "Virtual scrolling with react-virtualized causes scroll jumpi"
+        ]
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 1,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": [
+          "Revert a UI change to previous working implementation 1. Ide"
+        ]
+      },
+      "corrections": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "fpItems": []
+      }
+    },
+    {
+      "id": "t10_unrecovered_and_plain_directive",
+      "directives": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "fpItems": []
+      },
+      "post_mortems": {
+        "gold": 0,
+        "predicted": 1,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": [
+          "ETIMEDOUT upstream 10.0.0.9:9092 连接上游服务 10.0.0.9:9092（很可能是 K"
+        ]
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 1,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": [
+          "暂时搁置被阻塞的任务 遇到非阻塞性外部错误（如 ETIMEDOUT）且用户表示‘先放着’时：1) 停止当前任务；2) 记"
+        ]
+      },
+      "corrections": {
+        "gold": 0,
+        "predicted": 1,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": [
+          "工具返回 ETIMEDOUT upstream 10.0.0.9:9092 后，用户说‘先放着，去改别的’ 不要继续等待"
+        ]
+      }
+    },
+    {
+      "id": "t11_prefer_style",
+      "directives": {
+        "gold": 1,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 1,
+        "fpItems": []
+      },
+      "post_mortems": {
+        "gold": 1,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 1,
+        "fpItems": []
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "corrections": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      }
+    }
+  ]
+}

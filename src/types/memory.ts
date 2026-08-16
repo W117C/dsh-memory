@@ -6,10 +6,11 @@ export type MemoryScope = 'workspace' | 'global';
 
 export type MemoryTier = 'semantic' | 'episodic' | 'procedural' | 'working';
 
-export type MemoryCategory = 
+export type MemoryCategory =
   | 'preference'     // User preferences & habits (e.g. language, tools)
   | 'architecture'   // Project architecture, tech stack, directory conventions
   | 'rule'           // Strict negative constraints & coding style rules
+  | 'correction'     // User pushback → corrected behavior pairs (highest trust, user-authored)
   | 'post_mortem'    // Error debug retrospective & verified solutions
   | 'workflow'       // Reusable shell script workflows & command recipes
   | 'scratchpad';    // Working memory scratchpad / active turn state
@@ -30,6 +31,7 @@ export interface MemoryRecord {
   solution_code?: string;        // Working code / commands that resolved the issue
   git_branch?: string;           // Git branch context (e.g. "main", "feat/v2")
   git_commit?: string;           // Associated commit hash
+  origin_cwd?: string;           // Project root recorded at write time ('*' = legacy/visible everywhere)
   verification_count: number;    // Number of successful reuses
   importance: number;            // 1.0 - 5.0
   access_count: number;          // Total hit count
@@ -41,6 +43,8 @@ export interface MemoryRecord {
 }
 
 export interface MemoryCreateInput {
+  /** Preserve a stable id on import/migration; must match the mem_* pattern. */
+  id?: string;
   scope?: MemoryScope;
   tier: MemoryTier;
   category: MemoryCategory;

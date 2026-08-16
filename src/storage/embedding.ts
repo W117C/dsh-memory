@@ -1,3 +1,5 @@
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { MemoryConfig } from '../config.js';
 
 export interface EmbeddingProvider {
@@ -8,9 +10,15 @@ export interface EmbeddingProvider {
 
 export class EmbeddingAdapter implements EmbeddingProvider {
   private localPipeline: any = null;
-  private isInitializing = false;
   private initPromise: Promise<void> | null = null;
   private dimension: number;
+
+  /**
+   * Module-level load cache: one model-load attempt (success OR failure) is
+   * shared by every adapter instance in this process, so a worker that opens
+   * many stores does not repeat the load race per store.
+   */
+  private static sharedPipelinePromises = new Map<string, Promise<any>>();
 
   constructor(private config: MemoryConfig['embedding']) {
     this.dimension = config.dimension || 512;
@@ -20,28 +28,77 @@ export class EmbeddingAdapter implements EmbeddingProvider {
     return this.dimension;
   }
 
+  /** Kick off model loading without waiting (called at plugin boot). */
+  public warmUp(): void {
+    void this.ensureInitialized();
+  }
+
+  public get mode(): 'onnx-local' | 'remote' | 'deterministic-hash' {
+    if (this.config.provider === 'remote' && this.config.apiKey && this.config.baseUrl) return 'remote';
+    return this.localPipeline ? 'onnx-local' : 'deterministic-hash';
+  }
+
   private async ensureInitialized(): Promise<void> {
     if (this.localPipeline) return;
     if (this.initPromise) return this.initPromise;
 
     this.initPromise = (async () => {
-      if (this.config.provider === 'local') {
-        try {
-          const { pipeline } = await import('@huggingface/transformers');
-          const loadPromise = pipeline('feature-extraction', this.config.model, {
-            dtype: 'fp32'
-          });
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Embedding model load timeout')), 3000)
-          );
-          this.localPipeline = await Promise.race([loadPromise, timeoutPromise]);
-        } catch {
-          this.localPipeline = null;
-        }
+      if (this.config.provider !== 'local') return;
+      const key = this.config.model;
+      let shared = EmbeddingAdapter.sharedPipelinePromises.get(key);
+      if (!shared) {
+        shared = this.loadPipelineOnce();
+        EmbeddingAdapter.sharedPipelinePromises.set(key, shared);
+      }
+      try {
+        this.localPipeline = await shared;
+      } catch {
+        this.localPipeline = null;
       }
     })();
 
     return this.initPromise;
+  }
+
+  /**
+   * One load attempt with corrupt-cache recovery: a truncated download left
+   * in transformers' cache makes every later load fail instantly (protobuf
+   * error), so on failure we clear that model's cache dir and retry once.
+   */
+  private async loadPipelineOnce(): Promise<any> {
+    try {
+      return await this.attemptLoad();
+    } catch (err) {
+      await this.clearModelCache();
+      return await this.attemptLoad();
+    }
+  }
+
+  private attemptLoad(): Promise<any> {
+    const timeoutMs = this.config.loadTimeoutMs ?? 20000;
+    return (async () => {
+      const { pipeline, env } = await import('@huggingface/transformers');
+      const loadPromise = pipeline('feature-extraction', this.config.model, {
+        dtype: 'fp32'
+      });
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Embedding model load timeout')), timeoutMs)
+      );
+      return await Promise.race([loadPromise, timeoutPromise]);
+    })();
+  }
+
+  private async clearModelCache(): Promise<void> {
+    try {
+      // Resolve the same cache root transformers itself uses.
+      const { env } = (await import('@huggingface/transformers')) as { env: { cacheDir: string } };
+      const modelDir = path.join(env.cacheDir, this.config.model);
+      if (fs.existsSync(modelDir)) {
+        fs.rmSync(modelDir, { recursive: true, force: true });
+      }
+    } catch {
+      // best-effort only
+    }
   }
 
   public async embed(text: string, isQuery = false): Promise<Float32Array> {

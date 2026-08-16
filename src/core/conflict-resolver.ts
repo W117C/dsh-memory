@@ -24,9 +24,10 @@ export class ConflictResolver {
         SELECT * FROM memories
         WHERE scope = ? AND path_pattern = ? AND entity_key = ?
           AND (invalid_at IS NULL OR invalid_at > ?)
+          AND (scope = 'global' OR origin_cwd IS NULL OR origin_cwd = '*' OR origin_cwd = ?)
         LIMIT 1
       `);
-      const existing = stmt.get(scope, pathPattern, input.entity_key, now) as MemoryRecord | undefined;
+      const existing = stmt.get(scope, pathPattern, input.entity_key, now, process.cwd()) as MemoryRecord | undefined;
 
       if (existing) {
         // Compare content within the exact same scope & path_pattern
@@ -78,6 +79,7 @@ export class ConflictResolver {
           existing &&
           existing.scope === scope &&
           existing.path_pattern === pathPattern &&
+          this.store.isOriginVisible(existing) &&
           (!existing.invalid_at || existing.invalid_at > now)
         ) {
           if (this.isIdentical(existing.content, input.content)) {

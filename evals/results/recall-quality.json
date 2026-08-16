@@ -1,0 +1,85 @@
+{
+  "scenarios": 8,
+  "recall@1": 1,
+  "recall@3": 1,
+  "recall@5": 1,
+  "mrr": 1,
+  "crossProjectLeaks": 0,
+  "engine": "HybridRetriever (deterministic hash embeddings, forceJsVector)",
+  "details": [
+    {
+      "id": "s01_jest_flaky",
+      "ranked": [
+        "mem_pm_jest_retry",
+        "mem_pm_vitest",
+        "mem_rule_ci"
+      ],
+      "goldHitRank": 1,
+      "foreignLeaks": []
+    },
+    {
+      "id": "s02_pnpm_rule",
+      "ranked": [
+        "mem_rule_pnpm",
+        "mem_rule_nvmrc"
+      ],
+      "goldHitRank": 1,
+      "foreignLeaks": []
+    },
+    {
+      "id": "s03_pg_conn",
+      "ranked": [
+        "mem_pm_pg_docker",
+        "mem_pm_redis",
+        "mem_wf_backup"
+      ],
+      "goldHitRank": 1,
+      "foreignLeaks": []
+    },
+    {
+      "id": "s04_corrections_first",
+      "ranked": [
+        "mem_corr_no_session",
+        "mem_arch_auth",
+        "mem_rule_ts"
+      ],
+      "goldHitRank": 1,
+      "foreignLeaks": []
+    },
+    {
+      "id": "s05_branch_scoped",
+      "ranked": [
+        "mem_pm_proto_feat",
+        "mem_pm_proto_main"
+      ],
+      "goldHitRank": 1,
+      "foreignLeaks": []
+    },
+    {
+      "id": "s06_cross_project_leak",
+      "ranked": [
+        "mem_pm_conn_here"
+      ],
+      "goldHitRank": 1,
+      "foreignLeaks": []
+    },
+    {
+      "id": "s07_recipe_recall",
+      "ranked": [
+        "mem_wf_release",
+        "mem_wf_lint"
+      ],
+      "goldHitRank": 1,
+      "foreignLeaks": []
+    },
+    {
+      "id": "s08_tentative_suppressed",
+      "ranked": [
+        "mem_pm_webpack_verified",
+        "mem_pm_webpack_tentative"
+      ],
+      "goldHitRank": 1,
+      "foreignLeaks": []
+    }
+  ]
+}

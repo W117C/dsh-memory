@@ -1,0 +1,382 @@
+{
+  "engine": "llm-semantic-augmented (deepseek-v4-flash, same schema/prompt as TrajectoryDistiller L2)",
+  "cases": 11,
+  "perCategory": {
+    "directives": {
+      "precision": 0.167,
+      "recall": 0.75,
+      "f1": 0.273,
+      "tp": 3,
+      "fp": 15,
+      "fn": 1
+    },
+    "post_mortems": {
+      "precision": 0.8,
+      "recall": 1,
+      "f1": 0.889,
+      "tp": 4,
+      "fp": 1,
+      "fn": 0
+    },
+    "recipes": {
+      "precision": 0.111,
+      "recall": 1,
+      "f1": 0.2,
+      "tp": 1,
+      "fp": 8,
+      "fn": 0
+    },
+    "corrections": {
+      "precision": 0.6,
+      "recall": 0.75,
+      "f1": 0.667,
+      "tp": 3,
+      "fp": 2,
+      "fn": 1
+    }
+  },
+  "macroF1": 0.507,
+  "perCase": [
+    {
+      "id": "t1_pnpm_correction",
+      "directives": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      },
+      "post_mortems": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      },
+      "corrections": {
+        "gold": 1,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 1,
+        "judged": true
+      }
+    },
+    {
+      "id": "t2_must_test_rule",
+      "directives": {
+        "gold": 1,
+        "predicted": 2,
+        "tp": 1,
+        "fn": 0,
+        "judged": true
+      },
+      "post_mortems": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 1,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      },
+      "corrections": {
+        "gold": 0,
+        "predicted": 1,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      }
+    },
+    {
+      "id": "t3_error_recovery",
+      "directives": {
+        "gold": 0,
+        "predicted": 3,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      },
+      "post_mortems": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "judged": true
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 2,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      },
+      "corrections": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      }
+    },
+    {
+      "id": "t4_ts_error_recovery",
+      "directives": {
+        "gold": 0,
+        "predicted": 1,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      },
+      "post_mortems": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "judged": true
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 1,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      },
+      "corrections": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      }
+    },
+    {
+      "id": "t5_recipe_build",
+      "directives": {
+        "gold": 0,
+        "predicted": 1,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      },
+      "post_mortems": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      },
+      "recipes": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "judged": true
+      },
+      "corrections": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      }
+    },
+    {
+      "id": "t6_english_correction",
+      "directives": {
+        "gold": 0,
+        "predicted": 2,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      },
+      "post_mortems": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      },
+      "corrections": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "judged": true
+      }
+    },
+    {
+      "id": "t7_mixed",
+      "directives": {
+        "gold": 1,
+        "predicted": 3,
+        "tp": 1,
+        "fn": 0,
+        "judged": true
+      },
+      "post_mortems": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "judged": true
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 1,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      },
+      "corrections": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "judged": true
+      }
+    },
+    {
+      "id": "t8_noise_only",
+      "directives": {
+        "gold": 0,
+        "predicted": 1,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      },
+      "post_mortems": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      },
+      "corrections": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      }
+    },
+    {
+      "id": "t9_subtle_correction",
+      "directives": {
+        "gold": 0,
+        "predicted": 3,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      },
+      "post_mortems": {
+        "gold": 0,
+        "predicted": 1,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 2,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      },
+      "corrections": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "judged": true
+      }
+    },
+    {
+      "id": "t10_unrecovered_and_plain_directive",
+      "directives": {
+        "gold": 1,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 1,
+        "judged": true
+      },
+      "post_mortems": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      },
+      "corrections": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      }
+    },
+    {
+      "id": "t11_prefer_style",
+      "directives": {
+        "gold": 1,
+        "predicted": 2,
+        "tp": 1,
+        "fn": 0,
+        "judged": true
+      },
+      "post_mortems": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "judged": true
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 1,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      },
+      "corrections": {
+        "gold": 0,
+        "predicted": 1,
+        "tp": 0,
+        "fn": 0,
+        "judged": true
+      }
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "name": "@dsh-plugins/memory",
-  "version": "2.1.0",
+  "version": "2.4.0",
   "description": "DeepSeek Harness (dsh) native cognitive memory system plugin — DeepSeek-V4 KV-cache friendly, Cordis v4 microkernel, native web panel",
   "type": "module",
   "main": "dist/index.js",

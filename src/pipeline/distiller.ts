@@ -6,11 +6,14 @@ import { VerificationGate } from './verification-gate.js';
 import { ConflictResolver } from '../core/conflict-resolver.js';
 import { EpisodicMemoryManager } from '../subsystems/episodic.js';
 import { ProceduralMemoryManager } from '../subsystems/procedural.js';
+import { CorrectionExtractor, correctionToMemoryInput } from './correction-extractor.js';
+import type { CostTracker } from '../core/cost-tracker.js';
 
 export interface DistillSummary {
   semanticFactsExtracted: number;
   postMortemsExtracted: number;
   recipesExtracted: number;
+  correctionsExtracted: number;
   engineUsed: 'deterministic-fast' | 'llm-semantic-augmented';
 }
 
@@ -55,9 +58,21 @@ export const DISTILL_JSON_SCHEMA = {
         },
         required: ["task_name", "commands"]
       }
+    },
+    user_corrections: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          trigger: { type: "string" },
+          corrected_behavior: { type: "string" },
+          summary: { type: "string" }
+        },
+        required: ["trigger", "corrected_behavior"]
+      }
     }
   },
-  required: ["semantic_facts", "post_mortems", "procedural_recipes"]
+  required: ["semantic_facts", "post_mortems", "procedural_recipes", "user_corrections"]
 };
 
 /** Structural face of the dsh LLM service (`@deepseek-ai/dsh-llm`). */
@@ -68,6 +83,8 @@ export interface LlmStreamService {
     system?: string;
     messages: Array<{ role: string; content: unknown }>;
     maxTokens?: number;
+    /** Pass-through for DeepSeek-V4 dual-mode: auxiliary calls disable thinking. */
+    thinking?: { type: 'enabled' | 'disabled' };
   }): AsyncIterable<DistillChunk>;
 }
 
@@ -94,6 +111,7 @@ export class TrajectoryDistiller {
   private resolver: ConflictResolver;
   private episodicMgr: EpisodicMemoryManager;
   private proceduralMgr: ProceduralMemoryManager;
+  private correctionExtractor: CorrectionExtractor;
 
   constructor(
     private ctx: Context,
@@ -103,6 +121,7 @@ export class TrajectoryDistiller {
       resolver?: ConflictResolver;
       episodicMgr?: EpisodicMemoryManager;
       proceduralMgr?: ProceduralMemoryManager;
+      costTracker?: CostTracker;
     }
   ) {
     this.filter = new TrajectoryFilter();
@@ -110,7 +129,11 @@ export class TrajectoryDistiller {
     this.resolver = managers?.resolver ?? new ConflictResolver(store);
     this.episodicMgr = managers?.episodicMgr ?? new EpisodicMemoryManager(store);
     this.proceduralMgr = managers?.proceduralMgr ?? new ProceduralMemoryManager(store);
+    this.correctionExtractor = new CorrectionExtractor();
+    this.costTracker = managers?.costTracker;
   }
+
+  private costTracker?: CostTracker;
 
   public async distillSession(session: DistillSessionInput): Promise<DistillSummary> {
     const rawTrajectory = session.trajectory || [];
@@ -119,12 +142,21 @@ export class TrajectoryDistiller {
         semanticFactsExtracted: 0,
         postMortemsExtracted: 0,
         recipesExtracted: 0,
+        correctionsExtracted: 0,
         engineUsed: 'deterministic-fast'
       };
     }
 
     // 1. Level 1: Deterministic rule-based pruning (<80% token reduction) with CoT thought stripping
     const pruned = this.filter.prune(rawTrajectory);
+
+    // 1b. User corrections ride along in every engine path.
+    const corrections = this.correctionExtractor.extract(rawTrajectory);
+    let correctionCount = 0;
+    for (const pair of corrections) {
+      await this.resolver.resolveAndApply(correctionToMemoryInput(pair));
+      correctionCount++;
+    }
 
     // 2. Check if complex Code Mode / Sandbox failure requires Level 2 LLM semantic distillation
     const hasComplexSandboxError = this.detectComplexSandboxExecution(rawTrajectory);
@@ -136,6 +168,7 @@ export class TrajectoryDistiller {
         if (llmSummary) {
           return {
             ...llmSummary,
+            correctionsExtracted: correctionCount,
             engineUsed: 'llm-semantic-augmented'
           };
         }
@@ -145,7 +178,8 @@ export class TrajectoryDistiller {
     }
 
     // 3. Level 1 Default: Fast Deterministic Ingestion
-    return this.distillDeterministic(pruned);
+    const deterministic = await this.distillDeterministic(pruned);
+    return { ...deterministic, correctionsExtracted: correctionCount };
   }
 
   private async distillDeterministic(pruned: PrunedTrajectory): Promise<DistillSummary> {
@@ -188,6 +222,7 @@ export class TrajectoryDistiller {
       semanticFactsExtracted: semanticCount,
       postMortemsExtracted: postMortemCount,
       recipesExtracted: recipeCount,
+      correctionsExtracted: 0,
       engineUsed: 'deterministic-fast'
     };
   }
@@ -221,13 +256,14 @@ export class TrajectoryDistiller {
       .filter(Boolean)
       .join('\n');
 
-    const prompt = `Analyze this AI coding agent session trajectory. Extract verified rules, debugging post-mortems and reusable workflows.\n\nRespond with strictly valid JSON matching this schema:\n${JSON.stringify(DISTILL_JSON_SCHEMA)}\n\nTrajectory:\n${compactTrajectoryText}`;
+    const prompt = `Analyze this AI coding agent session trajectory. Extract verified rules, debugging post-mortems, reusable workflows, and user corrections (moments where the user pushed back and the agent changed course).\n\nRespond with strictly valid JSON matching this schema:\n${JSON.stringify(DISTILL_JSON_SCHEMA)}\n\nTrajectory:\n${compactTrajectoryText}`;
 
+    const systemText = 'You are an AI Memory Distiller. Output strictly valid JSON conforming to the requested schema. Output nothing else.';
     let text = '';
     for await (const chunk of llmService.stream({
       provider: this.config.llmProvider,
       model: this.config.distillModel,
-      system: 'You are an AI Memory Distiller. Output strictly valid JSON conforming to the requested schema. Output nothing else.',
+      system: systemText,
       messages: [{ role: 'user', content: prompt }],
       maxTokens: 2048
     })) {
@@ -236,10 +272,17 @@ export class TrajectoryDistiller {
       }
     }
 
+    this.costTracker?.recordEstimatedText(
+      this.config.distillModel,
+      'distill',
+      systemText + prompt,
+      text
+    );
+
     const parsed = this.parseJsonLoose(text);
     if (!parsed) return null;
 
-    let sCount = 0, pCount = 0, rCount = 0;
+    let sCount = 0, pCount = 0, rCount = 0, cCount = 0;
 
     if (Array.isArray(parsed.semantic_facts)) {
       for (const f of parsed.semantic_facts) {
@@ -279,24 +322,49 @@ export class TrajectoryDistiller {
       }
     }
 
+    if (Array.isArray(parsed.user_corrections)) {
+      for (const c of parsed.user_corrections) {
+        const trigger = String(c.trigger || '').slice(0, 200);
+        const behavior = String(c.corrected_behavior || '').slice(0, 300);
+        if (!trigger || !behavior) continue;
+        await this.resolver.resolveAndApply({
+          tier: 'semantic',
+          category: 'correction',
+          scope: 'global',
+          status: 'verified',
+          importance: 4.5,
+          content: `用户纠正：${trigger}\n修正后的行为：${behavior}`,
+          summary: c.summary ? String(c.summary).slice(0, 140) : `纠错: ${trigger.slice(0, 60)} → ${behavior.slice(0, 60)}`,
+          reason: 'llm-distill-correction'
+        });
+        cCount++;
+      }
+    }
+
     return {
       semanticFactsExtracted: sCount,
       postMortemsExtracted: pCount,
       recipesExtracted: rCount,
+      correctionsExtracted: cCount,
       engineUsed: 'llm-semantic-augmented'
     };
   }
 
-  /** Tolerate code fences around the JSON body before parsing. */
+  /** Tolerate code fences, prose wrappers, and trailing commas before parsing. */
   private parseJsonLoose(text: string): Record<string, unknown> | null {
     const trimmed = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
     const start = trimmed.indexOf('{');
     const end = trimmed.lastIndexOf('}');
     if (start === -1 || end === -1 || end <= start) return null;
+    const sliced = trimmed.slice(start, end + 1);
     try {
-      return JSON.parse(trimmed.slice(start, end + 1));
+      return JSON.parse(sliced);
     } catch {
-      return null;
+      try {
+        return JSON.parse(sliced.replace(/,\s*([}\]])/g, '$1'));
+      } catch {
+        return null;
+      }
     }
   }
 }

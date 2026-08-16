@@ -1,0 +1,177 @@
+{
+  "corpus": 16,
+  "questions": 10,
+  "engine": "HybridRetriever multi-hop coverage (deterministic hash embeddings)",
+  "both-gold@3": 0.5,
+  "both-gold@5": 0.6,
+  "both-gold@8": 0.6,
+  "any-gold@3": 0.8,
+  "any-gold@5": 0.8,
+  "any-gold@8": 0.9,
+  "details": [
+    {
+      "id": "q1",
+      "ranked": [
+        "mem_b_pg",
+        "mem_a_pg",
+        "mem_pkg_pnpm",
+        "mem_auth_jwt",
+        "mem_auth_refresh",
+        "mem_err_jest",
+        "mem_ci_green",
+        "mem_rel_beta"
+      ],
+      "hits": [
+        "mem_a_pg",
+        "mem_b_pg"
+      ]
+    },
+    {
+      "id": "q2",
+      "ranked": [
+        "mem_auth_jwt",
+        "mem_pkg_pnpm",
+        "mem_err_jest",
+        "mem_rel_beta",
+        "mem_ci_green",
+        "mem_auth_refresh",
+        "mem_rel_prod",
+        "mem_a_pg"
+      ],
+      "hits": [
+        "mem_err_jest"
+      ]
+    },
+    {
+      "id": "q3",
+      "ranked": [
+        "mem_rel_beta",
+        "mem_pkg_pnpm",
+        "mem_err_jest",
+        "mem_a_pg",
+        "mem_auth_jwt",
+        "mem_pkg_node",
+        "mem_b_pg",
+        "mem_doc_zh"
+      ],
+      "hits": [
+        "mem_rel_beta"
+      ]
+    },
+    {
+      "id": "q4",
+      "ranked": [
+        "mem_auth_jwt",
+        "mem_auth_refresh",
+        "mem_pkg_pnpm",
+        "mem_err_jest",
+        "mem_doc_zh",
+        "mem_a_pg",
+        "mem_b_pg",
+        "mem_ts_strict"
+      ],
+      "hits": [
+        "mem_auth_jwt",
+        "mem_auth_refresh"
+      ]
+    },
+    {
+      "id": "q5",
+      "ranked": [
+        "mem_ci_flaky",
+        "mem_ci_green",
+        "mem_err_jest",
+        "mem_pkg_pnpm",
+        "mem_auth_refresh",
+        "mem_auth_jwt",
+        "mem_rel_beta",
+        "mem_pkg_node"
+      ],
+      "hits": [
+        "mem_ci_green",
+        "mem_ci_flaky"
+      ]
+    },
+    {
+      "id": "q6",
+      "ranked": [
+        "mem_pkg_pnpm",
+        "mem_ci_green",
+        "mem_err_jest",
+        "mem_auth_jwt",
+        "mem_a_pg",
+        "mem_auth_refresh",
+        "mem_b_pg",
+        "mem_rel_beta"
+      ],
+      "hits": []
+    },
+    {
+      "id": "q7",
+      "ranked": [
+        "mem_err_jest",
+        "mem_auth_jwt",
+        "mem_auth_refresh",
+        "mem_doc_zh",
+        "mem_pkg_pnpm",
+        "mem_ci_green",
+        "mem_ts_strict",
+        "mem_a_pg"
+      ],
+      "hits": [
+        "mem_ts_strict"
+      ]
+    },
+    {
+      "id": "q8",
+      "ranked": [
+        "mem_pkg_node",
+        "mem_pkg_pnpm",
+        "mem_rel_prod",
+        "mem_err_jest",
+        "mem_auth_jwt",
+        "mem_a_pg",
+        "mem_rel_beta",
+        "mem_b_pg"
+      ],
+      "hits": [
+        "mem_pkg_pnpm",
+        "mem_pkg_node"
+      ]
+    },
+    {
+      "id": "q9",
+      "ranked": [
+        "mem_pkg_pnpm",
+        "mem_err_jest",
+        "mem_auth_jwt",
+        "mem_ci_green",
+        "mem_auth_refresh",
+        "mem_rel_beta",
+        "mem_pkg_node",
+        "mem_ts_strict"
+      ],
+      "hits": [
+        "mem_ci_green",
+        "mem_err_jest"
+      ]
+    },
+    {
+      "id": "q10",
+      "ranked": [
+        "mem_rel_beta",
+        "mem_pkg_pnpm",
+        "mem_err_jest",
+        "mem_auth_jwt",
+        "mem_rel_prod",
+        "mem_pkg_node",
+        "mem_doc_zh",
+        "mem_a_pg"
+      ],
+      "hits": [
+        "mem_pkg_pnpm",
+        "mem_rel_beta"
+      ]
+    }
+  ]
+}

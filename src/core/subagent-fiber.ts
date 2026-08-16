@@ -68,13 +68,15 @@ export class SubagentFiberManager {
       const scope = staged.scope || 'workspace';
       const pathPattern = staged.path_pattern || '*';
 
-      // 1. Check for concurrent modification during this Fiber's execution window
+      // 1. Check for concurrent modification during this Fiber's execution window.
+      //    `>=` (not `>`): a write landing in the same millisecond the fiber
+      //    started is still concurrent from the fiber's point of view.
       if (staged.entity_key) {
         const stmtCheck = this.store.getDb().prepare(`
           SELECT * FROM memories
           WHERE scope = ? AND path_pattern = ? AND entity_key = ?
             AND (invalid_at IS NULL OR invalid_at > ?)
-            AND updated_at > ?
+            AND updated_at >= ?
           LIMIT 1
         `);
         const concurrentExisting = stmtCheck.get(scope, pathPattern, staged.entity_key, now, ctx.createdAt) as MemoryRecord | undefined;

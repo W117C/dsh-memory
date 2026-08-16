@@ -1,0 +1,382 @@
+{
+  "engine": "deterministic-fast (TrajectoryFilter + CorrectionExtractor, no LLM)",
+  "cases": 11,
+  "perCategory": {
+    "directives": {
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "tp": 4,
+      "fp": 0,
+      "fn": 0
+    },
+    "post_mortems": {
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "tp": 4,
+      "fp": 0,
+      "fn": 0
+    },
+    "recipes": {
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0
+    },
+    "corrections": {
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "tp": 4,
+      "fp": 0,
+      "fn": 0
+    }
+  },
+  "macroF1": 1,
+  "perCase": [
+    {
+      "id": "t1_pnpm_correction",
+      "directives": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "post_mortems": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "corrections": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "fpItems": []
+      }
+    },
+    {
+      "id": "t2_must_test_rule",
+      "directives": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "fpItems": []
+      },
+      "post_mortems": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "corrections": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      }
+    },
+    {
+      "id": "t3_error_recovery",
+      "directives": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "post_mortems": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "fpItems": []
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "corrections": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      }
+    },
+    {
+      "id": "t4_ts_error_recovery",
+      "directives": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "post_mortems": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "fpItems": []
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "corrections": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      }
+    },
+    {
+      "id": "t5_recipe_build",
+      "directives": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "post_mortems": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "recipes": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "fpItems": []
+      },
+      "corrections": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      }
+    },
+    {
+      "id": "t6_english_correction",
+      "directives": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "post_mortems": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "corrections": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "fpItems": []
+      }
+    },
+    {
+      "id": "t7_mixed",
+      "directives": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "fpItems": []
+      },
+      "post_mortems": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "fpItems": []
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "corrections": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "fpItems": []
+      }
+    },
+    {
+      "id": "t8_noise_only",
+      "directives": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "post_mortems": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "corrections": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      }
+    },
+    {
+      "id": "t9_subtle_correction",
+      "directives": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "post_mortems": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "corrections": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "fpItems": []
+      }
+    },
+    {
+      "id": "t10_unrecovered_and_plain_directive",
+      "directives": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "fpItems": []
+      },
+      "post_mortems": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "corrections": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      }
+    },
+    {
+      "id": "t11_prefer_style",
+      "directives": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "fpItems": []
+      },
+      "post_mortems": {
+        "gold": 1,
+        "predicted": 1,
+        "tp": 1,
+        "fn": 0,
+        "fpItems": []
+      },
+      "recipes": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      },
+      "corrections": {
+        "gold": 0,
+        "predicted": 0,
+        "tp": 0,
+        "fn": 0,
+        "fpItems": []
+      }
+    }
+  ]
+}

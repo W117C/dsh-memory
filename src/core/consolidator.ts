@@ -21,6 +21,7 @@ import { HybridRetriever } from './hybrid-retriever.js';
 import { linkEntitiesForMemory } from './entity-extractor.js';
 import { MemoryCreateInput, MemoryRecord } from '../types/memory.js';
 import { getLlmService, LlmStreamService } from '../pipeline/distiller.js';
+import type { CostTracker } from './cost-tracker.js';
 
 export interface ConsolidationConfig {
   llmAssisted: boolean;
@@ -28,6 +29,7 @@ export interface ConsolidationConfig {
   extractEntities: boolean;
   llmProvider: string;
   model: string;
+  costTracker?: CostTracker;
 }
 
 export interface ConsolidationDecision {
@@ -122,6 +124,13 @@ export class MemoryConsolidator {
         text += (chunk as { text?: string }).text ?? '';
       }
     }
+
+    this.config.costTracker?.recordEstimatedText(
+      this.config.model,
+      'consolidate',
+      CONSOLIDATE_SYSTEM + prompt,
+      text
+    );
 
     const parsed = this.parseJsonLoose(text);
     if (!parsed || !Array.isArray(parsed.decisions)) return null;

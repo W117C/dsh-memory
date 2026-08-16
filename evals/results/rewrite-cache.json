@@ -1,0 +1,12 @@
+{
+  "A 项目和 B 项目的数据库端口分别是什么": "项目A 项目B 数据库 端口 配置 docker-compose application.properties TCP 5432 3306 实例分离",
+  "测试超时和测试框架崩溃分别怎么处理": "test timeout 测试超时 junit pytest 框架崩溃 crash 处理 pytest-timeout test framework hang 测试框架",
+  "发 beta 和发正式版流程有什么区别": "beta release staging production CI/CD 灰度发布 发布流程 版本控制 部署 pipeline 上线 checklist",
+  "auth 用什么方案，token 过期怎么刷新": "OAuth2 JWT access_token refresh_token 登录认证 token 过期 刷新 axios 拦截器 401 无感刷新 单点登录",
+  "CI 挂了能合吗，flaky 的怎么处理": "CI failed merge 分支保护 flaky test 重试 合并门禁 稳定测试 流水线 失败原因 GitHub Actions 不稳定测试 修复",
+  "写文档有什么语言和流程要求": "Markdown reStructuredText AsciiDoc 中文文档 技术写作 文档评审流程 版本控制 持续集成",
+  "TypeScript 有哪些强制配置": "tsconfig.json strict 强制类型检查 noImplicitAny noImplicitThis strictNullChecks fullyTypedFiles 配置项 强制选项",
+  "装依赖和 node 版本有什么约定": "node_modules package.json engines nvm .nvmrc 依赖安装 版本锁定 npm ci 生产依赖 devDependencies node 版本管理 约定",
+  "修完代码提交前要确认什么（测试与流水线）": "pre-commit 测试 流水线 CI/CD 回归测试 静态检查 代码规范 lint 单元测试 集成测试 构建验证 冒烟测试",
+  "从依赖安装到发布 beta 的完整约定": "npm ci lockfile package.json 依赖安装 发布 beta npm publish dist-tag prePublishOnly semantic-release 版本约定 CI/CD 流水线"
+}

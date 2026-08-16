@@ -62,17 +62,37 @@ export class WorkingSetBuilder {
     const now = Date.now();
     const maxTokens = this.config.maxWorkingSetTokens;
     let approxTokenCount = 0;
+    const cwd = process.cwd();
+    // Origin visibility: global rows + legacy '*' rows are always visible;
+    // workspace rows only inside their originating project.
+    const originVisible = `(scope = 'global' OR origin_cwd IS NULL OR origin_cwd = '*' OR origin_cwd = @cwd)`;
+
+    // 0. User corrections — highest priority (user-authored, cross-project)
+    const stmtCorrections = this.store.getDb().prepare(`
+      SELECT * FROM memories
+      WHERE tier = 'semantic'
+        AND category = 'correction'
+        AND status = 'verified'
+        AND (invalid_at IS NULL OR invalid_at > @now)
+        AND ${originVisible}
+      ORDER BY importance DESC, last_accessed_at DESC
+      LIMIT 20
+    `);
+    const corrections = (stmtCorrections.all({ now, cwd }) as MemoryRecord[])
+      .filter(r => this.isBranchVisible(currentGitBranch, r.git_branch));
 
     // 1. Fetch active verified rules & preferences (Up to 50 candidates)
     const stmtRules = this.store.getDb().prepare(`
       SELECT * FROM memories
       WHERE tier = 'semantic'
         AND status = 'verified'
-        AND (invalid_at IS NULL OR invalid_at > ?)
+        AND category != 'correction'
+        AND (invalid_at IS NULL OR invalid_at > @now)
+        AND ${originVisible}
       ORDER BY importance DESC, access_count DESC
       LIMIT 50
     `);
-    const allCandidateRules = stmtRules.all(now) as MemoryRecord[];
+    const allCandidateRules = stmtRules.all({ now, cwd }) as MemoryRecord[];
 
     // 2. Fetch top verified post-mortems
     const stmtPostMortems = this.store.getDb().prepare(`
@@ -80,11 +100,12 @@ export class WorkingSetBuilder {
       WHERE tier = 'episodic'
         AND category = 'post_mortem'
         AND status = 'verified'
-        AND (invalid_at IS NULL OR invalid_at > ?)
+        AND (invalid_at IS NULL OR invalid_at > @now)
+        AND ${originVisible}
       ORDER BY importance DESC, verification_count DESC
       LIMIT 10
     `);
-    const allPostMortems = stmtPostMortems.all(now) as MemoryRecord[];
+    const allPostMortems = stmtPostMortems.all({ now, cwd }) as MemoryRecord[];
 
     // 3. Fetch top verified workflow recipes
     const stmtRecipes = this.store.getDb().prepare(`
@@ -92,13 +113,25 @@ export class WorkingSetBuilder {
       WHERE tier = 'procedural'
         AND category = 'workflow'
         AND status = 'verified'
-        AND (invalid_at IS NULL OR invalid_at > ?)
+        AND (invalid_at IS NULL OR invalid_at > @now)
+        AND ${originVisible}
       ORDER BY importance DESC
       LIMIT 10
     `);
-    const allRecipes = stmtRecipes.all(now) as MemoryRecord[];
+    const allRecipes = stmtRecipes.all({ now, cwd }) as MemoryRecord[];
 
-    const lines: string[] = ['<dsh_memory version="1.0">'];
+    const lines: string[] = ['<dsh_memory version="1.1">'];
+
+    if (corrections.length > 0) {
+      lines.push('[User Corrections — do not repeat]');
+      for (const c of corrections) {
+        const line = `- ${c.summary}`;
+        const tokens = this.estimateTokens(line);
+        if (approxTokenCount + tokens > maxTokens * 0.3) break;
+        lines.push(line);
+        approxTokenCount += tokens;
+      }
+    }
 
     // 4. Branch Visibility & Specificity-Aware Rule Ranking:
     const matchedRules = allCandidateRules

@@ -208,7 +208,7 @@ describe('Memory HTTP API: top-tier capability endpoints', () => {
   it('POST /import rejects oversized payloads and missing fields', async () => {
     const resMissing = fakeRes();
     await api.handle(fakeReq('POST', {}), resMissing, '/import');
-    expect(JSON.parse(resMissing.captured.body).error).toBe('jsonl required');
+    expect(JSON.parse(resMissing.captured.body).error).toBe('jsonl or markdown required');
 
     const resBig = fakeRes();
     await api.handle(fakeReq('POST', { jsonl: 'x'.repeat(10_000_001) }), resBig, '/import');
