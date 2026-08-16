@@ -19,3 +19,4 @@ credentials*.yaml
 # logs
 *.log
 npm-debug.log*
+*.tgz
