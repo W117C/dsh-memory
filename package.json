@@ -27,8 +27,12 @@
     "LICENSE",
     "README.md",
     "CHANGELOG.md",
+    "EFFECTS.md",
     "examples"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc && node scripts/build-client.mjs",
     "build:host": "tsc",
