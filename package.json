@@ -1,0 +1,95 @@
+{
+  "name": "@dsh-plugins/memory",
+  "version": "2.1.0",
+  "description": "DeepSeek Harness (dsh) native cognitive memory system plugin — DeepSeek-V4 KV-cache friendly, Cordis v4 microkernel, native web panel",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./client": "./dist/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  },
+  "files": [
+    "dist",
+    "cordis.patch.yml",
+    "LICENSE",
+    "README.md",
+    "CHANGELOG.md",
+    "examples"
+  ],
+  "scripts": {
+    "build": "tsc && node scripts/build-client.mjs",
+    "build:host": "tsc",
+    "build:client": "node scripts/build-client.mjs",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.client.json",
+    "test": "node scripts/build-client.mjs && vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "deepseek",
+    "deepseek-v4",
+    "dsh",
+    "dsh-plugin",
+    "dsh-client",
+    "cordis",
+    "memory",
+    "ai-agent",
+    "vector-search"
+  ],
+  "author": "Antigravity Team",
+  "license": "MIT",
+  "dependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@huggingface/transformers": "^3.3.3",
+    "better-sqlite3": "^11.8.1",
+    "sqlite-vec": "^0.1.6"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1"
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh-client-ui-slots": "0.0.1-rc.1",
+    "@deepseek-ai/dsh-host-webserver": "0.0.1-rc.1",
+    "@deepseek-ai/dsh-llm": "0.0.1-rc.1",
+    "@deepseek-ai/dsh-system-prompt": "0.0.1-rc.1",
+    "@deepseek-ai/schemastery": "^3.18.1",
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.13.4",
+    "@types/react": "~18.3.31",
+    "esbuild": "^0.28.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "esbuild",
+      "onnxruntime-node",
+      "protobufjs",
+      "sharp"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/W117C/dsh-memory.git"
+  },
+  "bugs": {
+    "url": "https://github.com/W117C/dsh-memory/issues"
+  },
+  "homepage": "https://github.com/W117C/dsh-memory#readme"
+}

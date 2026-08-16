@@ -1,0 +1,21 @@
+# build artifacts (built by `pnpm build` before pack/publish)
+dist/
+# dependencies
+node_modules/
+# runtime data
+.dsh/
+*.db
+*.db-wal
+*.db-shm
+# local tooling state
+.mimosa/
+.DS_Store
+# env / secrets
+.env
+.env.*
+*.pem
+*.key
+credentials*.yaml
+# logs
+*.log
+npm-debug.log*

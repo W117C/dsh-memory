@@ -1,0 +1,22 @@
+# The @dsh-plugins/memory bundle patch: one host row mounting the plugin.
+#
+# A profile composes this by listing the package in its dsh.profile.bundles
+# (installed into the profile's node_modules via
+# `dsh plugin --profile <name> add @dsh-plugins/memory`). Resolution order is
+# the dsh composer's: dsh installation bundles first, then profile-installed
+# out-of-tree plugins like this one.
+#
+# The plugin needs no `inject`: every dsh surface it consumes (tools,
+# systemPrompt, session events, httpServer, llm) is an optional capability
+# reached through `ctx.get`, so the row boots on web, headless, and bare
+# profiles alike and degrades per missing surface.
+#
+# The browser half needs no row of its own: the client-modules node half
+# scans enabled Loader entries for packages declaring `dsh.client`
+# (this package: `{ platform: 'web' }` + `exports['./client']`), serves the
+# built bundle under /plugins/<name>/client.js, and the settings-section
+# panel appears natively inside `dsh web`.
+
+- insert:
+    - id: memory
+      name: '@dsh-plugins/memory'
