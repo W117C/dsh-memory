@@ -28,7 +28,12 @@ export const DISTILL_JSON_SCHEMA = {
           entity_key: { type: "string" },
           content: { type: "string" },
           summary: { type: "string" },
-          importance: { type: "number", minimum: 1, maximum: 5 }
+          importance: { type: "number", minimum: 1, maximum: 5 },
+          topics: {
+            type: "array",
+            items: { type: "string" },
+            description: "3-8 retrieval topic words for this fact: technical terms, config keys, commands, and the Chinese/English synonyms a future query would use even if not in the text"
+          }
         },
         required: ["content", "summary"]
       }
@@ -42,7 +47,12 @@ export const DISTILL_JSON_SCHEMA = {
           root_cause: { type: "string" },
           solution_code: { type: "string" },
           summary: { type: "string" },
-          importance: { type: "number", minimum: 1, maximum: 5 }
+          importance: { type: "number", minimum: 1, maximum: 5 },
+          topics: {
+            type: "array",
+            items: { type: "string" },
+            description: "3-8 retrieval topic words: the failing tool/API, error terms, and synonyms a future query would use"
+          }
         },
         required: ["error_signature", "root_cause", "solution_code"]
       }
@@ -54,7 +64,12 @@ export const DISTILL_JSON_SCHEMA = {
         properties: {
           task_name: { type: "string" },
           commands: { type: "string" },
-          summary: { type: "string" }
+          summary: { type: "string" },
+          topics: {
+            type: "array",
+            items: { type: "string" },
+            description: "3-8 retrieval topic words: the workflow's goal verbs/nouns, tools, and synonyms a future query would use"
+          }
         },
         required: ["task_name", "commands"]
       }
@@ -66,7 +81,12 @@ export const DISTILL_JSON_SCHEMA = {
         properties: {
           trigger: { type: "string" },
           corrected_behavior: { type: "string" },
-          summary: { type: "string" }
+          summary: { type: "string" },
+          topics: {
+            type: "array",
+            items: { type: "string" },
+            description: "3-8 retrieval topic words: the corrected subject and the terms a future query would use to recall this correction"
+          }
         },
         required: ["trigger", "corrected_behavior"]
       }
@@ -292,6 +312,7 @@ export class TrajectoryDistiller {
           entity_key: f.entity_key,
           content: f.content,
           summary: f.summary || String(f.content).slice(0, 80),
+          topic_keywords: toTopics(f.topics),
           importance: f.importance || 4.0,
           status: 'verified'
         });
@@ -305,6 +326,7 @@ export class TrajectoryDistiller {
           errorSignature: pm.error_signature,
           rootCause: pm.root_cause,
           solutionCode: pm.solution_code,
+          topic_keywords: toTopics(pm.topics),
           importance: pm.importance || 4.5
         });
         pCount++;
@@ -316,7 +338,8 @@ export class TrajectoryDistiller {
         await this.proceduralMgr.registerRecipe({
           taskName: rc.task_name,
           triggerCondition: `When performing ${rc.task_name}`,
-          commandsOrScript: rc.commands
+          commandsOrScript: rc.commands,
+          topic_keywords: toTopics(rc.topics)
         });
         rCount++;
       }
@@ -333,6 +356,7 @@ export class TrajectoryDistiller {
           scope: 'global',
           status: 'verified',
           importance: 4.5,
+          topic_keywords: toTopics(c.topics),
           content: `用户纠正：${trigger}\n修正后的行为：${behavior}`,
           summary: c.summary ? String(c.summary).slice(0, 140) : `纠错: ${trigger.slice(0, 60)} → ${behavior.slice(0, 60)}`,
           reason: 'llm-distill-correction'
@@ -367,4 +391,13 @@ export class TrajectoryDistiller {
       }
     }
   }
+}
+
+/** Normalize a possibly-malformed LLM `topics` field into a clean string array. */
+function toTopics(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const out = value
+    .map((t) => (typeof t === 'string' ? t.trim() : String(t).trim()))
+    .filter((t) => t.length > 0);
+  return out.length > 0 ? out.slice(0, 12) : undefined;
 }

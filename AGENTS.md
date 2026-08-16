@@ -32,6 +32,6 @@ pnpm pack          # 产出 dsh-plugins-memory-<version>.tgz
 
 ## 当前状态与下一步
 
-- v2.4.0：P0–P3 路线图 + 检索升级 + 后续清单全部落地（95/95 测试）；GitHub `W117C/dsh-memory` 已推送（main + tag v2.4.0）。
+- v2.5.0：写入端主题词补全（治本冷词表，longmem-mini both-gold@5 0.70→0.90）+ 端到端 QA 评测 harness（`evals/longmemeval-e2e.mjs`，作答+judge 分层）；105/105 测试；GitHub `W117C/dsh-memory` main + tag v2.5.0 待推送。
 - **pending**：npm 未发布（本机无凭据，待 `npm login` 后 `npm publish`，publishConfig 已配 public）。
-- 下一步候选：写入端主题词补全（治本冷词表）、端到端 QA 口径评测、dsh-ultra 编排层本体（另一仓库/规划）。
+- 下一步候选：dsh-ultra 编排层本体（另一仓库/规划）。

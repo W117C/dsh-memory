@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.5.0 — 写入端主题词补全 + 端到端 QA 口径（遗留问题关闭）
+
+### 新增
+
+- **写入端主题词补全（治本冷词表 miss）**：写路径为每条记忆补 `topic_keywords`——L2 蒸馏在同一次 Flash 调用内让 LLM 输出每条 `topics`（零额外成本）；L1/普通写入确定性派生（实体 + 裸技术词，`deriveTopicKeywords`）。主题词并入嵌入文本与 FTS 索引（含 schema 迁移重建），冷词表查询（改写器猜不到的 vitest/ADR/路径别名）现在由写侧补齐，而不再依赖检索侧猜词。实测 longmem-mini：both-gold@5 **0.70 → 0.90**（any-gold@5 → 1.00，见 EFFECTS §4）。
+- **端到端 QA 评测**（`evals/longmemeval-e2e.mjs`）：LongMemEval-S 官方作答式——检索 top-k 证据 → Flash 作答 → Flash judge 判定等价；检索层（evidence@k）与作答正确性（answer-substring / answer-llm-judge）分离计分 + 失败分诊（retrieval-miss / answer-miss）；作答缓存磁盘化保证重跑确定；先声明 gate 阈值。
+
+### 变更
+
+- `memories` 新增 `topic_keywords` 列（旧库 ALTER 迁移；FTS 表重建回填）；`MemoryRecord/MemoryCreateInput/MemoryUpdateInput`、markdown 投影 frontmatter（`topics`）、JSONL 导出导入、`distiller` L2 schema（`topics`）全部打通。
+- `createMemory`/`updateMemory` 在未显式提供主题词时自动确定性派生；L2 蒸馏显式传入的主题词优先。
+
+### 测试
+
+- 95 → 105 项：`tests/topic-completion.spec.ts` 新增 10 项（L1 派生、L2 透传、冷词表桥接召回、FTS 直达、更新重派生、markdown/JSONL 回导、派生器单元）。
+
 ## 2.4.0 — 官方基准 + 压测 + 评测口径完善（后续清单清零）
 
 ### 新增

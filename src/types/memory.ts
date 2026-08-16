@@ -26,6 +26,7 @@ export interface MemoryRecord {
   content: string;               // Full markdown content
   summary: string;               // Compact summary for prompt injection
   entity_key?: string;           // Dot-separated unique key (e.g. "config.package_manager")
+  topic_keywords?: string[];     // Write-side topic words (L2 LLM output or deterministic extraction); bridged into FTS + embedding so cold-vocabulary queries can match
   path_pattern: string;          // Monorepo file path glob (default: "*")
   error_signature?: string;      // Error pattern / keyword regex for post-mortems
   solution_code?: string;        // Working code / commands that resolved the issue
@@ -51,6 +52,7 @@ export interface MemoryCreateInput {
   content: string;
   summary?: string;
   entity_key?: string;
+  topic_keywords?: string[];
   path_pattern?: string;
   error_signature?: string;
   solution_code?: string;
@@ -64,6 +66,7 @@ export interface MemoryCreateInput {
 export interface MemoryUpdateInput {
   content?: string;
   summary?: string;
+  topic_keywords?: string[];
   path_pattern?: string;
   solution_code?: string;
   git_branch?: string;

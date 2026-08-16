@@ -8,6 +8,7 @@ import { VectorStore } from './vector-store.js';
 import { FtsStore } from './fts-store.js';
 import { EmbeddingAdapter } from './embedding.js';
 import { redactSecrets } from '../core/secret-redactor.js';
+import { deriveTopicKeywords } from '../core/entity-extractor.js';
 
 export interface ExtendedMemoryUpdateInput extends MemoryUpdateInput {
   verification_count?: number;
@@ -102,6 +103,7 @@ export class MemoryStore {
         content TEXT NOT NULL,
         summary TEXT NOT NULL,
         entity_key TEXT,
+        topic_keywords TEXT,
         path_pattern TEXT DEFAULT '*',
         error_signature TEXT,
         solution_code TEXT,
@@ -159,6 +161,9 @@ export class MemoryStore {
       this.db.exec('ALTER TABLE memories ADD COLUMN origin_cwd TEXT DEFAULT "*"');
       this.db.exec('CREATE INDEX IF NOT EXISTS idx_mem_origin ON memories(origin_cwd)');
     } catch {}
+    try {
+      this.db.exec('ALTER TABLE memories ADD COLUMN topic_keywords TEXT');
+    } catch {}
   }
 
   public async createMemory(input: MemoryCreateInput): Promise<MemoryRecord> {
@@ -175,6 +180,16 @@ export class MemoryStore {
     const sanitizedSolution = input.solution_code ? redactSecrets(input.solution_code) : undefined;
     const sanitizedErrorSig = input.error_signature ? redactSecrets(input.error_signature) : undefined;
 
+    // Write-side topic completion: explicit topics (e.g. L2 distillation's
+    // LLM output) win; otherwise deterministically derive them from the text
+    // (entities + bare technical tokens). Topic words are bridged into both
+    // the embedding text and the FTS index so cold-vocabulary queries (terms
+    // the memory body itself never spelled out) can still match.
+    const topicKeywords = input.topic_keywords?.length
+      ? input.topic_keywords.map((t) => t.trim()).filter(Boolean).slice(0, 12)
+      : deriveTopicKeywords(sanitizedContent, sanitizedSummary, sanitizedErrorSig ?? '', sanitizedSolution ?? '');
+    const topicText = topicKeywords.join(' ');
+
     const record: MemoryRecord = {
       id,
       scope: input.scope || 'workspace',
@@ -184,6 +199,7 @@ export class MemoryStore {
       content: sanitizedContent,
       summary: sanitizedSummary,
       entity_key: input.entity_key,
+      topic_keywords: topicKeywords,
       path_pattern: input.path_pattern || '*',
       error_signature: sanitizedErrorSig,
       solution_code: sanitizedSolution,
@@ -200,30 +216,34 @@ export class MemoryStore {
       invalid_at: null
     } as MemoryRecord;
 
-    // Document-side embedding: summary + keys carry the salient terms, the
-    // content head adds the semantic body summaries alone are too terse for.
-    const textToEmbed = `${record.summary} ${record.entity_key || ''} ${record.error_signature || ''} ${sanitizedContent.slice(0, 300)}`;
+    // Document-side embedding: summary + topics + keys carry the salient
+    // terms, the content head adds the semantic body summaries alone are too
+    // terse for.
+    const textToEmbed = `${record.summary} ${topicText} ${record.entity_key || ''} ${record.error_signature || ''} ${sanitizedContent.slice(0, 300)}`;
     const embedding = await this.embeddingAdapter.embed(textToEmbed, false);
 
     const insertTx = this.db.transaction(() => {
       const stmt = this.db.prepare(`
         INSERT INTO memories (
           id, scope, tier, category, status, content, summary,
-          entity_key, path_pattern, error_signature, solution_code,
+          entity_key, topic_keywords, path_pattern, error_signature, solution_code,
           git_branch, git_commit, origin_cwd,
           verification_count, importance, access_count,
           created_at, updated_at, last_accessed_at, valid_from, invalid_at
         ) VALUES (
           @id, @scope, @tier, @category, @status, @content, @summary,
-          @entity_key, @path_pattern, @error_signature, @solution_code,
+          @entity_key, @topic_keywords, @path_pattern, @error_signature, @solution_code,
           @git_branch, @git_commit, @origin_cwd,
           @verification_count, @importance, @access_count,
           @created_at, @updated_at, @last_accessed_at, @valid_from, @invalid_at
         )
       `);
-      stmt.run(record);
+      stmt.run({
+        ...record,
+        topic_keywords: topicKeywords.join(', ')
+      });
 
-      this.ftsStore.upsertFts(id, record.content, record.summary, record.error_signature || '');
+      this.ftsStore.upsertFts(id, record.content, record.summary, record.error_signature || '', topicText);
       this.vectorStore.upsertVector(id, embedding);
     });
 
@@ -235,7 +255,7 @@ export class MemoryStore {
   public getMemoryById(id: string): MemoryRecord | null {
     const stmt = this.db.prepare('SELECT * FROM memories WHERE id = ?');
     const row = stmt.get(id) as MemoryRecord | undefined;
-    return row || null;
+    return row ? mapRowToRecord(row) : null;
   }
 
   public updateMemory(id: string, updates: ExtendedMemoryUpdateInput): MemoryRecord | null {
@@ -255,12 +275,20 @@ export class MemoryStore {
     const newCount = updates.verification_count !== undefined ? updates.verification_count : existing.verification_count;
     const newErrorSig = updates.error_signature !== undefined ? redactSecrets(updates.error_signature) : existing.error_signature;
     const newBranch = updates.git_branch ?? existing.git_branch;
+    // Re-derive topics when the body changed and the caller did not pin them.
+    const newTopics: string[] = updates.topic_keywords?.length
+      ? updates.topic_keywords.map((t) => t.trim()).filter(Boolean).slice(0, 12)
+      : (updates.content || updates.summary || updates.error_signature)
+        ? deriveTopicKeywords(newContent, newSummary, newErrorSig ?? '', newSolution ?? '')
+        : (existing.topic_keywords ?? []);
+    const newTopicText = newTopics.join(' ');
 
     const updateTx = this.db.transaction(() => {
       const stmt = this.db.prepare(`
         UPDATE memories SET
           content = ?,
           summary = ?,
+          topic_keywords = ?,
           path_pattern = ?,
           solution_code = ?,
           importance = ?,
@@ -273,10 +301,10 @@ export class MemoryStore {
         WHERE id = ?
       `);
 
-      stmt.run(newContent, newSummary, newPath, newSolution, newImportance, newStatus, newInvalidAt, newCount, newErrorSig, newBranch, now, id);
+      stmt.run(newContent, newSummary, newTopics.join(', '), newPath, newSolution, newImportance, newStatus, newInvalidAt, newCount, newErrorSig, newBranch, now, id);
 
-      if (updates.content || updates.summary || updates.error_signature) {
-        this.ftsStore.upsertFts(id, newContent, newSummary, newErrorSig || '');
+      if (updates.content || updates.summary || updates.error_signature || updates.topic_keywords) {
+        this.ftsStore.upsertFts(id, newContent, newSummary, newErrorSig || '', newTopicText);
       }
     });
 
@@ -466,4 +494,13 @@ export class MemoryStore {
       this.db.close();
     }
   }
+}
+
+/** Row → MemoryRecord: decode the comma-joined `topic_keywords` column back to an array. */
+export function mapRowToRecord(row: MemoryRecord): MemoryRecord {
+  const topics = (row as { topic_keywords?: unknown }).topic_keywords;
+  return {
+    ...row,
+    topic_keywords: typeof topics === 'string' && topics.trim() ? topics.split(',').map((t) => t.trim()).filter(Boolean) : undefined
+  };
 }

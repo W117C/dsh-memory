@@ -82,3 +82,51 @@ export function linkEntitiesForMemory(store: MemoryStore, memory: MemoryRecord):
   }
   return linked;
 }
+
+/**
+ * Deterministic write-side topic keywords — the L1 fallback of the
+ * write-side topic-completion fix for the cold-vocabulary recall gap.
+ *
+ * Unlike `extractEntities` (strict surface forms only), this also harvests
+ * bare technical tokens (`pnpm`, `vitest`, `adr`, `jwt`, ...) that a user
+ * query would naturally contain but that never appear as dotted keys or
+ * backtick spans. Words are cheap to index and BM25 down-weights common
+ * ones, so precision loss is bounded; the richer synonym bridging (e.g.
+ * "测试框架" for `vitest`) is the L2 LLM path's job during distillation.
+ */
+const TOPIC_STOPWORDS = new Set([
+  'about', 'after', 'again', 'also', 'and', 'any', 'are', 'because', 'been', 'before',
+  'being', 'both', 'but', 'can', 'could', 'did', 'does', 'doing', 'down', 'during',
+  'each', 'for', 'from', 'get', 'has', 'have', 'having', 'here', 'how', 'into', 'its',
+  'just', 'make', 'more', 'most', 'much', 'not', 'now', 'off', 'on', 'only', 'other',
+  'our', 'out', 'over', 'own', 'same', 'she', 'should', 'some', 'such', 'than', 'that',
+  'the', 'their', 'them', 'then', 'there', 'these', 'they', 'this', 'those', 'through',
+  'too', 'under', 'use', 'using', 'very', 'was', 'were', 'what', 'when', 'where',
+  'which', 'while', 'who', 'why', 'will', 'with', 'would', 'you', 'your', 'run', 'set',
+  'fix', 'add', 'new', 'old', 'all', 'one', 'two', 'see', 'work', 'works', 'code',
+  'file', 'files', 'check', 'need', 'made', 'used', 'via'
+]);
+
+const BARE_TOKEN = /\b([a-z][a-z0-9._-]{2,29})\b/g;
+const UPPER_TOKEN = /\b([A-Z][A-Z0-9_]{1,29})\b/g;
+
+const MAX_TOPICS = 12;
+
+export function deriveTopicKeywords(...texts: string[]): string[] {
+  const found = new Set<string>();
+  for (const text of texts) {
+    if (!text) continue;
+    for (const e of extractEntities(text)) found.add(e);
+    for (const m of text.matchAll(BARE_TOKEN)) {
+      const t = m[1];
+      if (TOPIC_STOPWORDS.has(t)) continue;
+      if (/\d{4,}/.test(t)) continue;
+      found.add(t);
+    }
+    for (const m of text.matchAll(UPPER_TOKEN)) {
+      found.add(m[1]);
+    }
+    if (found.size >= MAX_TOPICS) break;
+  }
+  return [...found].slice(0, MAX_TOPICS);
+}

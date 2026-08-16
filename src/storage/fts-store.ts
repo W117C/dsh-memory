@@ -11,26 +11,52 @@ export class FtsStore {
   }
 
   private initFtsTable(): void {
+    // Existing databases may already carry an FTS table without the
+    // topic_keywords column (derived data — safe to rebuild from `memories`).
+    const cols = this.db.prepare('PRAGMA table_info(memory_fts)').all() as Array<{ name: string }>;
+    const needsRebuild = cols.length > 0 && !cols.some((c) => c.name === 'topic_keywords');
+    if (needsRebuild) {
+      this.db.exec('DROP TABLE IF EXISTS memory_fts');
+    }
     this.db.exec(`
       CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts USING fts5(
         id UNINDEXED,
         content,
         summary,
         error_signature,
+        topic_keywords,
         tokenize = 'unicode61'
       );
     `);
+    if (needsRebuild) this.rebuildFromMemories();
   }
 
-  public upsertFts(id: string, content: string, summary: string, errorSignature = ''): void {
+  /** Re-derive the whole FTS index from `memories` after a schema rebuild. */
+  private rebuildFromMemories(): void {
+    const rows = this.db.prepare('SELECT id, content, summary, error_signature, topic_keywords FROM memories').all() as Array<{
+      id: string; content: string; summary: string; error_signature: string | null; topic_keywords: string | null;
+    }>;
+    const stmt = this.db.prepare(`
+      INSERT INTO memory_fts (id, content, summary, error_signature, topic_keywords)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+    const tx = this.db.transaction(() => {
+      for (const r of rows) {
+        stmt.run(r.id, r.content, r.summary, r.error_signature ?? '', r.topic_keywords ?? '');
+      }
+    });
+    tx();
+  }
+
+  public upsertFts(id: string, content: string, summary: string, errorSignature = '', topicKeywords = ''): void {
     // Delete existing entry if any to prevent duplicates in FTS5
     this.deleteFts(id);
 
     const stmt = this.db.prepare(`
-      INSERT INTO memory_fts (id, content, summary, error_signature)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO memory_fts (id, content, summary, error_signature, topic_keywords)
+      VALUES (?, ?, ?, ?, ?)
     `);
-    stmt.run(id, content, summary, errorSignature);
+    stmt.run(id, content, summary, errorSignature, topicKeywords);
   }
 
   public deleteFts(id: string): void {

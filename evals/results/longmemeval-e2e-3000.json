@@ -1,0 +1,278 @@
+{
+  "source": "weaviate/longmemeval-s-cleaned (mirror of xiaowu0162/longmemeval)",
+  "questions": 20,
+  "model": "deepseek-v4-flash",
+  "topK": 5,
+  "evidenceChars": 3000,
+  "engine": "HybridRetriever (onnx-local, no rewrite) -> deepseek-v4-flash answer -> deepseek-v4-flash judge",
+  "evidence@1": 0.8,
+  "evidence@3": 0.85,
+  "evidence@5": 0.85,
+  "answerSubstringAt5": 0.2,
+  "answerJudgeAt5": 0.25,
+  "gates": {
+    "evidence@5": {
+      "pass": 0.8,
+      "warn": 0.7,
+      "block": 0.7
+    },
+    "answer-judge@5": {
+      "pass": 0.8,
+      "warn": 0.65,
+      "block": 0.65
+    },
+    "answer-substring@5": {
+      "pass": 0.7,
+      "warn": 0.55,
+      "block": 0.55
+    }
+  },
+  "failureTriage": {
+    "retrieval-miss": 3,
+    "answer-miss": 12,
+    "ok": 5
+  },
+  "approxTokensBilled": 68009,
+  "details": [
+    {
+      "question_id": "e47becba",
+      "question": "What degree did I graduate with?",
+      "gold": "Business Administration",
+      "haystack": 53,
+      "goldRank": null,
+      "retrievedEvidence": "miss",
+      "answerSubstring": false,
+      "answerJudge": false,
+      "modelAnswer": "NO_ANSWER",
+      "failureClass": "retrieval-miss"
+    },
+    {
+      "question_id": "118b2229",
+      "question": "How long is my daily commute to work?",
+      "gold": "45 minutes each way",
+      "haystack": 45,
+      "goldRank": 1,
+      "retrievedEvidence": "hit",
+      "answerSubstring": false,
+      "answerJudge": false,
+      "modelAnswer": "NO_ANSWER",
+      "failureClass": "answer-miss"
+    },
+    {
+      "question_id": "51a45a95",
+      "question": "Where did I redeem a $5 coupon on coffee creamer?",
+      "gold": "Target",
+      "haystack": 50,
+      "goldRank": 1,
+      "retrievedEvidence": "hit",
+      "answerSubstring": false,
+      "answerJudge": false,
+      "modelAnswer": "NO_ANSWER",
+      "failureClass": "answer-miss"
+    },
+    {
+      "question_id": "58bf7951",
+      "question": "What play did I attend at the local community theater?",
+      "gold": "The Glass Menagerie",
+      "haystack": 57,
+      "goldRank": 1,
+      "retrievedEvidence": "hit",
+      "answerSubstring": false,
+      "answerJudge": false,
+      "modelAnswer": "NO_ANSWER",
+      "failureClass": "answer-miss"
+    },
+    {
+      "question_id": "1e043500",
+      "question": "What is the name of the playlist I created on Spotify?",
+      "gold": "Summer Vibes",
+      "haystack": 50,
+      "goldRank": 1,
+      "retrievedEvidence": "hit",
+      "answerSubstring": true,
+      "answerJudge": true,
+      "modelAnswer": "Summer Vibes",
+      "failureClass": "ok"
+    },
+    {
+      "question_id": "c5e8278d",
+      "question": "What was my last name before I changed it?",
+      "gold": "Johnson",
+      "haystack": 44,
+      "goldRank": 1,
+      "retrievedEvidence": "hit",
+      "answerSubstring": true,
+      "answerJudge": true,
+      "modelAnswer": "Johnson.",
+      "failureClass": "ok"
+    },
+    {
+      "question_id": "6ade9755",
+      "question": "Where do I take yoga classes?",
+      "gold": "Serenity Yoga",
+      "haystack": 51,
+      "goldRank": 1,
+      "retrievedEvidence": "hit",
+      "answerSubstring": false,
+      "answerJudge": false,
+      "modelAnswer": "NO_ANSWER",
+      "failureClass": "answer-miss"
+    },
+    {
+      "question_id": "6f9b354f",
+      "question": "What color did I repaint my bedroom walls?",
+      "gold": "a lighter shade of gray",
+      "haystack": 50,
+      "goldRank": 1,
+      "retrievedEvidence": "hit",
+      "answerSubstring": false,
+      "answerJudge": true,
+      "modelAnswer": "lighter shade of gray",
+      "failureClass": "ok"
+    },
+    {
+      "question_id": "58ef2f1c",
+      "question": "When did I volunteer at the local animal shelter's fundraising dinner?",
+      "gold": "February 14th",
+      "haystack": 50,
+      "goldRank": 1,
+      "retrievedEvidence": "hit",
+      "answerSubstring": false,
+      "answerJudge": false,
+      "modelAnswer": "NO_ANSWER",
+      "failureClass": "answer-miss"
+    },
+    {
+      "question_id": "f8c5f88b",
+      "question": "Where did I buy my new tennis racket from?",
+      "gold": "the sports store downtown",
+      "haystack": 46,
+      "goldRank": 1,
+      "retrievedEvidence": "hit",
+      "answerSubstring": false,
+      "answerJudge": false,
+      "modelAnswer": "NO_ANSWER",
+      "failureClass": "answer-miss"
+    },
+    {
+      "question_id": "5d3d2817",
+      "question": "What was my previous occupation?",
+      "gold": "Marketing specialist at a small startup",
+      "haystack": 53,
+      "goldRank": 2,
+      "retrievedEvidence": "hit",
+      "answerSubstring": false,
+      "answerJudge": false,
+      "modelAnswer": "NO_ANSWER",
+      "failureClass": "answer-miss"
+    },
+    {
+      "question_id": "7527f7e2",
+      "question": "How much did I spend on a designer handbag?",
+      "gold": "$800",
+      "haystack": 45,
+      "goldRank": 1,
+      "retrievedEvidence": "hit",
+      "answerSubstring": false,
+      "answerJudge": false,
+      "modelAnswer": "NO_ANSWER",
+      "failureClass": "answer-miss"
+    },
+    {
+      "question_id": "c960da58",
+      "question": "How many playlists do I have on Spotify?",
+      "gold": "20",
+      "haystack": 46,
+      "goldRank": 1,
+      "retrievedEvidence": "hit",
+      "answerSubstring": false,
+      "answerJudge": false,
+      "modelAnswer": "NO_ANSWER",
+      "failureClass": "answer-miss"
+    },
+    {
+      "question_id": "3b6f954b",
+      "question": "Where did I attend for my study abroad program?",
+      "gold": "University of Melbourne in Australia",
+      "haystack": 50,
+      "goldRank": 1,
+      "retrievedEvidence": "hit",
+      "answerSubstring": false,
+      "answerJudge": false,
+      "modelAnswer": "NO_ANSWER",
+      "failureClass": "answer-miss"
+    },
+    {
+      "question_id": "726462e0",
+      "question": "What was the discount I got on my first purchase from the new clothing brand?",
+      "gold": "10%",
+      "haystack": 48,
+      "goldRank": null,
+      "retrievedEvidence": "miss",
+      "answerSubstring": false,
+      "answerJudge": false,
+      "modelAnswer": "NO_ANSWER",
+      "failureClass": "retrieval-miss"
+    },
+    {
+      "question_id": "94f70d80",
+      "question": "How long did it take me to assemble the IKEA bookshelf?",
+      "gold": "4 hours",
+      "haystack": 49,
+      "goldRank": null,
+      "retrievedEvidence": "miss",
+      "answerSubstring": false,
+      "answerJudge": false,
+      "modelAnswer": "NO_ANSWER",
+      "failureClass": "retrieval-miss"
+    },
+    {
+      "question_id": "66f24dbb",
+      "question": "What did I buy for my sister's birthday gift?",
+      "gold": "a yellow dress",
+      "haystack": 50,
+      "goldRank": 1,
+      "retrievedEvidence": "hit",
+      "answerSubstring": true,
+      "answerJudge": true,
+      "modelAnswer": "A yellow dress and a pair of earrings to match.",
+      "failureClass": "ok"
+    },
+    {
+      "question_id": "ad7109d1",
+      "question": "What speed is my new internet plan?",
+      "gold": "500 Mbps",
+      "haystack": 44,
+      "goldRank": 1,
+      "retrievedEvidence": "hit",
+      "answerSubstring": false,
+      "answerJudge": false,
+      "modelAnswer": "NO_ANSWER",
+      "failureClass": "answer-miss"
+    },
+    {
+      "question_id": "af8d2e46",
+      "question": "How many shirts did I pack for my 5-day trip to Costa Rica?",
+      "gold": "7",
+      "haystack": 50,
+      "goldRank": 1,
+      "retrievedEvidence": "hit",
+      "answerSubstring": false,
+      "answerJudge": false,
+      "modelAnswer": "NO_ANSWER",
+      "failureClass": "answer-miss"
+    },
+    {
+      "question_id": "dccbc061",
+      "question": "What was my previous stance on spirituality?",
+      "gold": "A staunch atheist",
+      "haystack": 49,
+      "goldRank": 1,
+      "retrievedEvidence": "hit",
+      "answerSubstring": true,
+      "answerJudge": true,
+      "modelAnswer": "Your previous stance on spirituality was that you were a staunch atheist.",
+      "failureClass": "ok"
+    }
+  ]
+}

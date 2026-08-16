@@ -5,7 +5,7 @@
  * `createMemory` accepts back), so a dump is simultaneously a backup, a
  * migration artifact between workspaces, and an inspectable dataset.
  */
-import { MemoryStore } from '../storage/db.js';
+import { MemoryStore, mapRowToRecord } from '../storage/db.js';
 import { ConflictResolver } from './conflict-resolver.js';
 import { MemoryCreateInput, MemoryRecord } from '../types/memory.js';
 
@@ -45,9 +45,9 @@ export class MemoryPortability {
     }
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-    const rows = this.store.getDb()
+    const rows = (this.store.getDb()
       .prepare(`SELECT * FROM memories ${where} ORDER BY created_at ASC`)
-      .all(...params) as MemoryRecord[];
+      .all(...params) as MemoryRecord[]).map((r) => mapRowToRecord(r));
 
     return rows.map((row) => JSON.stringify(row)).join('\n') + (rows.length > 0 ? '\n' : '');
   }
@@ -80,6 +80,11 @@ export class MemoryPortability {
         content: record.content,
         summary: record.summary,
         entity_key: record.entity_key,
+        topic_keywords: Array.isArray(record.topic_keywords)
+          ? (record.topic_keywords as string[]).map((t) => String(t))
+          : typeof record.topic_keywords === 'string'
+            ? (record.topic_keywords as string).split(',').map((t) => t.trim()).filter(Boolean)
+            : undefined,
         path_pattern: record.path_pattern,
         error_signature: record.error_signature,
         solution_code: record.solution_code,

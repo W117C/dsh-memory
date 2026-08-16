@@ -1,4 +1,4 @@
-import { MemoryStore } from '../storage/db.js';
+import { MemoryStore, mapRowToRecord } from '../storage/db.js';
 import { MemoryRecord } from '../types/memory.js';
 
 export interface WorkflowRecipeInput {
@@ -6,6 +6,7 @@ export interface WorkflowRecipeInput {
   triggerCondition: string;
   commandsOrScript: string;
   caveats?: string;
+  topic_keywords?: string[];
   importance?: number;
 }
 
@@ -23,6 +24,7 @@ export class ProceduralMemoryManager {
       content,
       summary,
       solution_code: input.commandsOrScript,
+      topic_keywords: input.topic_keywords,
       importance: input.importance ?? 4.0,
       status: 'verified'
     });
@@ -36,6 +38,6 @@ export class ProceduralMemoryManager {
       ORDER BY importance DESC, last_accessed_at DESC
       LIMIT ?
     `);
-    return stmt.all(now, limit) as MemoryRecord[];
+    return (stmt.all(now, limit) as MemoryRecord[]).map((r) => mapRowToRecord(r));
   }
 }

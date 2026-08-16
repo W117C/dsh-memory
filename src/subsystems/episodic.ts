@@ -1,4 +1,4 @@
-import { MemoryStore } from '../storage/db.js';
+import { MemoryStore, mapRowToRecord } from '../storage/db.js';
 import { MemoryRecord } from '../types/memory.js';
 import { extractErrorFingerprint } from '../core/error-fingerprint.js';
 
@@ -7,6 +7,7 @@ export interface PostMortemInput {
   rootCause: string;
   solutionCode: string;
   affectedFiles?: string;
+  topic_keywords?: string[];
   importance?: number;
 }
 
@@ -25,6 +26,7 @@ export class EpisodicMemoryManager {
       summary,
       error_signature: fp.normalizedSignature,
       solution_code: input.solutionCode,
+      topic_keywords: input.topic_keywords,
       importance: input.importance ?? 4.0,
       status: 'tentative'
     });
@@ -38,6 +40,6 @@ export class EpisodicMemoryManager {
       ORDER BY last_accessed_at DESC, created_at DESC
       LIMIT ?
     `);
-    return stmt.all(now, limit) as MemoryRecord[];
+    return (stmt.all(now, limit) as MemoryRecord[]).map((r) => mapRowToRecord(r));
   }
 }

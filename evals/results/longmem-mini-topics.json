@@ -1,0 +1,206 @@
+{
+  "corpus": 16,
+  "questions": 10,
+  "embeddingMode": "onnx-local",
+  "writeSideTopics": true,
+  "queryRewrite": false,
+  "engine": "HybridRetriever multi-hop coverage (onnx-local + write-side topics)",
+  "both-gold@3": 0.7,
+  "both-gold@5": 0.9,
+  "both-gold@8": 1,
+  "any-gold@3": 1,
+  "any-gold@5": 1,
+  "any-gold@8": 1,
+  "details": [
+    {
+      "id": "q1",
+      "query": "A 项目和 B 项目的数据库端口分别是什么",
+      "effectiveQuery": "A 项目和 B 项目的数据库端口分别是什么",
+      "ranked": [
+        "mem_a_pg",
+        "mem_b_pg",
+        "mem_auth_jwt",
+        "mem_pkg_pnpm",
+        "mem_doc_zh",
+        "mem_err_jest",
+        "mem_doc_adr",
+        "mem_rel_prod"
+      ],
+      "hits": [
+        "mem_a_pg",
+        "mem_b_pg"
+      ]
+    },
+    {
+      "id": "q2",
+      "query": "测试超时和测试框架崩溃分别怎么处理",
+      "effectiveQuery": "测试超时和测试框架崩溃分别怎么处理",
+      "ranked": [
+        "mem_auth_jwt",
+        "mem_err_jest",
+        "mem_pkg_pnpm",
+        "mem_err_vitest",
+        "mem_a_pg",
+        "mem_rel_prod",
+        "mem_rel_beta",
+        "mem_ts_strict"
+      ],
+      "hits": [
+        "mem_err_jest",
+        "mem_err_vitest"
+      ]
+    },
+    {
+      "id": "q3",
+      "query": "发 beta 和发正式版流程有什么区别",
+      "effectiveQuery": "发 beta 和发正式版流程有什么区别",
+      "ranked": [
+        "mem_rel_beta",
+        "mem_auth_jwt",
+        "mem_rel_prod",
+        "mem_pkg_pnpm",
+        "mem_err_jest",
+        "mem_doc_zh",
+        "mem_ts_strict",
+        "mem_doc_adr"
+      ],
+      "hits": [
+        "mem_rel_beta",
+        "mem_rel_prod"
+      ]
+    },
+    {
+      "id": "q4",
+      "query": "auth 用什么方案，token 过期怎么刷新",
+      "effectiveQuery": "auth 用什么方案，token 过期怎么刷新",
+      "ranked": [
+        "mem_auth_jwt",
+        "mem_auth_refresh",
+        "mem_err_jest",
+        "mem_rel_prod",
+        "mem_rel_beta",
+        "mem_pkg_pnpm",
+        "mem_a_pg",
+        "mem_doc_adr"
+      ],
+      "hits": [
+        "mem_auth_jwt",
+        "mem_auth_refresh"
+      ]
+    },
+    {
+      "id": "q5",
+      "query": "CI 挂了能合吗，flaky 的怎么处理",
+      "effectiveQuery": "CI 挂了能合吗，flaky 的怎么处理",
+      "ranked": [
+        "mem_ci_flaky",
+        "mem_auth_jwt",
+        "mem_ci_green",
+        "mem_pkg_pnpm",
+        "mem_err_jest",
+        "mem_auth_refresh",
+        "mem_a_pg",
+        "mem_rel_prod"
+      ],
+      "hits": [
+        "mem_ci_green",
+        "mem_ci_flaky"
+      ]
+    },
+    {
+      "id": "q6",
+      "query": "写文档有什么语言和流程要求",
+      "effectiveQuery": "写文档有什么语言和流程要求",
+      "ranked": [
+        "mem_auth_jwt",
+        "mem_doc_zh",
+        "mem_doc_adr",
+        "mem_a_pg",
+        "mem_pkg_pnpm",
+        "mem_rel_prod",
+        "mem_err_jest",
+        "mem_b_pg"
+      ],
+      "hits": [
+        "mem_doc_zh",
+        "mem_doc_adr"
+      ]
+    },
+    {
+      "id": "q7",
+      "query": "TypeScript 有哪些强制配置",
+      "effectiveQuery": "TypeScript 有哪些强制配置",
+      "ranked": [
+        "mem_auth_jwt",
+        "mem_ts_strict",
+        "mem_pkg_pnpm",
+        "mem_err_jest",
+        "mem_rel_prod",
+        "mem_ts_path",
+        "mem_doc_adr",
+        "mem_rel_beta"
+      ],
+      "hits": [
+        "mem_ts_strict",
+        "mem_ts_path"
+      ]
+    },
+    {
+      "id": "q8",
+      "query": "装依赖和 node 版本有什么约定",
+      "effectiveQuery": "装依赖和 node 版本有什么约定",
+      "ranked": [
+        "mem_pkg_node",
+        "mem_auth_jwt",
+        "mem_pkg_pnpm",
+        "mem_rel_prod",
+        "mem_err_jest",
+        "mem_rel_beta",
+        "mem_a_pg",
+        "mem_auth_refresh"
+      ],
+      "hits": [
+        "mem_pkg_pnpm",
+        "mem_pkg_node"
+      ]
+    },
+    {
+      "id": "q9",
+      "query": "修完代码提交前要确认什么（测试与流水线）",
+      "effectiveQuery": "修完代码提交前要确认什么（测试与流水线）",
+      "ranked": [
+        "mem_auth_jwt",
+        "mem_err_jest",
+        "mem_pkg_pnpm",
+        "mem_ci_flaky",
+        "mem_ci_green",
+        "mem_auth_refresh",
+        "mem_rel_prod",
+        "mem_doc_adr"
+      ],
+      "hits": [
+        "mem_ci_green",
+        "mem_err_jest"
+      ]
+    },
+    {
+      "id": "q10",
+      "query": "从依赖安装到发布 beta 的完整约定",
+      "effectiveQuery": "从依赖安装到发布 beta 的完整约定",
+      "ranked": [
+        "mem_rel_beta",
+        "mem_auth_jwt",
+        "mem_pkg_pnpm",
+        "mem_rel_prod",
+        "mem_err_jest",
+        "mem_pkg_node",
+        "mem_auth_refresh",
+        "mem_ci_green"
+      ],
+      "hits": [
+        "mem_pkg_pnpm",
+        "mem_rel_beta"
+      ]
+    }
+  ]
+}

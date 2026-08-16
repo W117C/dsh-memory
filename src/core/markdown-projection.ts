@@ -8,7 +8,7 @@
  * upserts: existing ids are updated only when content actually changed,
  * unknown ids are created with their id preserved.
  */
-import { MemoryStore } from '../storage/db.js';
+import { MemoryStore, mapRowToRecord } from '../storage/db.js';
 import { MemoryRecord } from '../types/memory.js';
 
 export interface MarkdownExportOptions {
@@ -51,9 +51,9 @@ export class MarkdownProjection {
     }
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-    const rows = this.store.getDb()
+    const rows = (this.store.getDb()
       .prepare(`SELECT * FROM memories ${where} ORDER BY scope, tier, importance DESC, created_at ASC`)
-      .all(...params) as MemoryRecord[];
+      .all(...params) as MemoryRecord[]).map((r) => mapRowToRecord(r));
 
     const files: Record<string, string> = {};
     const indexLines: string[] = [
@@ -90,6 +90,7 @@ export class MarkdownProjection {
     fm.push(`scope: ${mem.scope}`);
     fm.push(`importance: ${mem.importance}`);
     if (mem.entity_key) fm.push(`entity_key: ${mem.entity_key}`);
+    if (mem.topic_keywords?.length) fm.push(`topics: "${escapeFm(mem.topic_keywords.join(', '))}"`);
     fm.push(`path_pattern: "${mem.path_pattern}"`);
     fm.push(`git_branch: "${mem.git_branch ?? '*'}"`);
     if (mem.error_signature) fm.push(`error_signature: "${escapeFm(mem.error_signature)}"`);
@@ -144,6 +145,7 @@ export class MarkdownProjection {
           content: parsed.content,
           summary: parsed.summary,
           entity_key: parsed.entity_key,
+          topic_keywords: parsed.topic_keywords,
           path_pattern: parsed.path_pattern,
           error_signature: parsed.error_signature,
           solution_code: parsed.solution_code,
@@ -160,7 +162,8 @@ export class MarkdownProjection {
         existing.summary !== parsed.summary ||
         (existing.solution_code ?? undefined) !== parsed.solution_code ||
         existing.importance !== parsed.importance ||
-        existing.status !== parsed.status;
+        existing.status !== parsed.status ||
+        (existing.topic_keywords?.join(',') ?? '') !== (parsed.topic_keywords?.join(',') ?? '');
 
       if (!changed) {
         summary.unchanged++;
@@ -171,6 +174,7 @@ export class MarkdownProjection {
         content: parsed.content,
         summary: parsed.summary,
         solution_code: parsed.solution_code,
+        topic_keywords: parsed.topic_keywords,
         importance: parsed.importance,
         status: parsed.status,
         error_signature: parsed.error_signature,
@@ -191,6 +195,7 @@ interface ParsedMemoryDoc {
   status: MemoryRecord['status'];
   importance: number;
   entity_key?: string;
+  topic_keywords?: string[];
   path_pattern: string;
   git_branch?: string;
   error_signature?: string;
@@ -229,6 +234,7 @@ export function parseMemoryDoc(doc: string): ParsedMemoryDoc | null {
     status,
     importance: Number(fm.importance ?? 1) || 1,
     entity_key: fm.entity_key ? String(fm.entity_key) : undefined,
+    topic_keywords: fm.topics ? String(fm.topics).split(',').map((t) => t.trim()).filter(Boolean) : undefined,
     path_pattern: fm.path_pattern ? String(fm.path_pattern) : '*',
     git_branch: fm.git_branch ? String(fm.git_branch) : '*',
     error_signature: fm.error_signature ? String(fm.error_signature) : undefined,

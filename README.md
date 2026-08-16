@@ -2,7 +2,7 @@
 
 专为 **DeepSeek Harness (`dsh`)** 打造的原生认知记忆系统插件。深度适配 **DeepSeek-V4 模型**（默认 `deepseek-v4-flash`，KV-Cache 前缀缓存语义对齐）与 **dsh 真实插件体系**（`@deepseek-ai/cordis` v4 微内核 + 原生 Slots Web UI），能力面对标 GitHub 顶级开源记忆项目（mem0 / Zep / Letta / Cognee）。
 
-> 📊 **实测效果见 [EFFECTS.md](./EFFECTS.md)**：真机 KV 命中率 two-tier 95.5% ≈ 无记忆基线 94.7%（朴素重写 71.5%，成本 4.5×）；蒸馏 macro F1 1.000（L1）；多跳检索 both-gold@5 0.60→**0.80**；**LongMemEval-S 官方子集 evidence@1 = 0.84**；5K 记忆压测检索 p95 = 10ms；跨项目泄漏 0。全部可复现（`evals/`）。
+> 📊 **实测效果见 [EFFECTS.md](./EFFECTS.md)**：真机 KV 命中率 two-tier 95.5% ≈ 无记忆基线 94.7%（朴素重写 71.5%，成本 4.5×）；蒸馏 macro F1 1.000（L1）；多跳检索 both-gold@5 0.60→**0.90**；**LongMemEval-S 官方子集 evidence@1 = 0.84** + 端到端作答式评测（`evals/longmemeval-e2e.mjs`）；5K 记忆压测检索 p95 = 10ms；跨项目泄漏 0。全部可复现（`evals/`）。
 
 ## 📊 能力矩阵（对标顶级开源记忆项目）
 
@@ -145,7 +145,12 @@ pnpm typecheck    # 宿主与 client 双 tsconfig 类型检查
 
 ---
 
-## 🔎 v2.3.0：语义检索升级（多跳 0.60 → 0.80）
+## 🔎 v2.5.0：写入端主题词补全 + 端到端 QA 口径
+
+- **写入端主题词补全（治本冷词表）**：写路径为每条记忆补 `topic_keywords`——L2 蒸馏在同一次 Flash 调用内输出每条 `topics`（零额外成本），L1/普通写入确定性派生（实体 + 裸技术词）。主题词并入嵌入文本与 FTS 索引；冷词表查询（vitest/ADR/路径别名）改由写侧补齐而非检索侧猜词。实测 longmem-mini both-gold@5 **0.70 → 0.90**（any-gold@5 → 1.00）。
+- **端到端 QA 评测**（`evals/longmemeval-e2e.mjs`）：LongMemEval-S 官方作答式——检索 top-k 证据 → Flash 作答 → Flash judge 判定；检索层与作答层分离计分 + 失败分诊（retrieval-miss / answer-miss）；作答磁盘缓存保证重跑确定。首跑即暴露「证据窗口截断丢答案」的作答层短板（检索 0.85 vs 作答 ~0.10），可归因。
+
+## 🤖 v2.3.0：语义检索升级（多跳 0.60 → 0.80）
 
 - **本地 ONNX 嵌入自愈**：损坏/截断的模型缓存自动清理重试；加载超时可配（`embedding.loadTimeoutMs`）；启动后台预热；`adapter.mode` 可查实际模式。
 - **Flash 查询改写**（`retrieval.queryRewrite`）：抽象/口语查询先改写为关键词（few-shot 提示 + `thinking: disabled`），**双查询 max 合并**保证坏改写永不丢分；成本入账 `query-rewrite`。

@@ -7,34 +7,43 @@
  * both-gold coverage@k of the hybrid retriever over one shared corpus.
  * Deterministic: retrieval-only, no LLM needed for scoring.
  *
- * Usage: node evals/longmem-mini.mjs [--json out.json]
+ * Usage: node evals/longmem-mini.mjs [--topics] [--rewrite] [--json out.json]
+ *
+ * --topics: seed each corpus memory with write-side topic_keywords (what the
+ * L2 distiller emits at write time). Cold-vocabulary questions paraphrase the
+ * memory body ("测试框架崩溃" for `vitest crash`), so the synonym bridge words
+ * can only come from the write side — deterministic L1 extraction cannot
+ * invent them. This quantifies the write-side topic-completion payoff.
  */
 import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { Readable } from 'node:stream';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const { MemoryStore } = await import(path.join(root, 'dist/storage/db.js'));
 const { HybridRetriever } = await import(path.join(root, 'dist/core/hybrid-retriever.js'));
 const { DEFAULT_CONFIG } = await import(path.join(root, 'dist/config.js'));
 
+const WITH_TOPICS = process.argv.includes('--topics');
+
 const CORPUS = [
-  { id: 'mem_a_pg', tier: 'semantic', category: 'rule', scope: 'global', entity_key: 'db.port', content: 'A 项目数据库连接走 pgbouncer 6432 端口', summary: 'A 项目 db 6432', importance: 4, status: 'verified' },
-  { id: 'mem_b_pg', tier: 'semantic', category: 'rule', scope: 'global', entity_key: 'db.port', content: 'B 项目数据库直连 5432 端口', summary: 'B 项目 db 5432', importance: 4, status: 'verified' },
-  { id: 'mem_pkg_pnpm', tier: 'semantic', category: 'rule', scope: 'global', entity_key: 'config.package_manager', content: '统一使用 pnpm 安装依赖', summary: 'pnpm only', importance: 5, status: 'verified' },
-  { id: 'mem_pkg_node', tier: 'semantic', category: 'rule', scope: 'global', entity_key: 'config.node_version', content: 'Node 版本锁定 22 LTS，以 .nvmrc 为准', summary: 'node 22 nvmrc', importance: 3.5, status: 'verified' },
-  { id: 'mem_err_jest', tier: 'episodic', category: 'post_mortem', error_signature: 'jest timeout', solution_code: 'pnpm test -- --retryTimes=2', content: 'jest 超时的解法是重试参数', summary: 'jest retry', importance: 4.5, status: 'verified' },
-  { id: 'mem_err_vitest', tier: 'episodic', category: 'post_mortem', error_signature: 'vitest crash', solution_code: 'downgrade to vitest 1.2', content: 'vitest 1.3 UI 崩溃需降级', summary: 'vitest downgrade', importance: 3, status: 'verified' },
-  { id: 'mem_auth_jwt', tier: 'semantic', category: 'correction', scope: 'global', entity_key: 'correction.auth', content: '用户纠正：wrong, we use JWT\n修正后的行为：auth 一律 JWT', summary: '纠错: auth 用 JWT', importance: 4.5, status: 'verified' },
-  { id: 'mem_auth_refresh', tier: 'semantic', category: 'architecture', entity_key: 'auth.refresh', content: 'token 刷新端点是 /auth/refresh，滑动过期 7 天', summary: 'refresh endpoint 7d', importance: 4, status: 'verified' },
-  { id: 'mem_rel_beta', tier: 'procedural', category: 'workflow', entity_key: 'workflow.release_beta', solution_code: 'pnpm version prerelease && pnpm publish --tag beta', content: 'beta 发布两步走', summary: 'beta release steps', importance: 4, status: 'verified' },
-  { id: 'mem_rel_prod', tier: 'procedural', category: 'workflow', entity_key: 'workflow.release_prod', solution_code: 'pnpm publish --tag latest && git tag v*', content: '正式发布要打 git tag', summary: 'prod release + tag', importance: 4, status: 'verified' },
-  { id: 'mem_ci_green', tier: 'semantic', category: 'rule', scope: 'global', entity_key: 'ci.merge', content: 'CI 全绿才能合并分支', summary: 'ci green merge', importance: 4, status: 'verified' },
-  { id: 'mem_ci_flaky', tier: 'semantic', category: 'rule', scope: 'global', entity_key: 'ci.flaky_policy', content: 'CI 上的 flaky 测试先 quarantine 再修', summary: 'flaky quarantine', importance: 3.5, status: 'verified' },
-  { id: 'mem_doc_zh', tier: 'semantic', category: 'preference', scope: 'global', entity_key: 'docs.lang', content: '面向用户的文档与回复使用中文', summary: 'docs in chinese', importance: 4, status: 'verified' },
-  { id: 'mem_doc_adr', tier: 'semantic', category: 'architecture', entity_key: 'docs.adr', content: '架构决策必须补 ADR 到 docs/adr/', summary: 'adr required', importance: 3.5, status: 'verified' },
-  { id: 'mem_ts_strict', tier: 'semantic', category: 'rule', scope: 'global', entity_key: 'ts.strict', content: 'strictNullChecks 必须开启', summary: 'strict nulls', importance: 4, status: 'verified' },
-  { id: 'mem_ts_path', tier: 'semantic', category: 'architecture', entity_key: 'ts.paths', content: '路径别名统一 @/ 指向 src/', summary: 'alias @/ src', importance: 3, status: 'verified' }
+  { id: 'mem_a_pg', tier: 'semantic', category: 'rule', scope: 'global', entity_key: 'db.port', content: 'A 项目数据库连接走 pgbouncer 6432 端口', summary: 'A 项目 db 6432', importance: 4, status: 'verified', topics: ['数据库', 'db', '端口', 'pgbouncer', 'postgres'] },
+  { id: 'mem_b_pg', tier: 'semantic', category: 'rule', scope: 'global', entity_key: 'db.port', content: 'B 项目数据库直连 5432 端口', summary: 'B 项目 db 5432', importance: 4, status: 'verified', topics: ['数据库', 'db', '端口', '5432', 'postgres'] },
+  { id: 'mem_pkg_pnpm', tier: 'semantic', category: 'rule', scope: 'global', entity_key: 'config.package_manager', content: '统一使用 pnpm 安装依赖', summary: 'pnpm only', importance: 5, status: 'verified', topics: ['依赖', '安装', 'pnpm', 'package', '包管理'] },
+  { id: 'mem_pkg_node', tier: 'semantic', category: 'rule', scope: 'global', entity_key: 'config.node_version', content: 'Node 版本锁定 22 LTS，以 .nvmrc 为准', summary: 'node 22 nvmrc', importance: 3.5, status: 'verified', topics: ['node', '版本', 'lts', 'nvmrc', '运行时'] },
+  { id: 'mem_err_jest', tier: 'episodic', category: 'post_mortem', error_signature: 'jest timeout', solution_code: 'pnpm test -- --retryTimes=2', content: 'jest 超时的解法是重试参数', summary: 'jest retry', importance: 4.5, status: 'verified', topics: ['jest', '测试', '超时', 'timeout', 'retry', '单测'] },
+  { id: 'mem_err_vitest', tier: 'episodic', category: 'post_mortem', error_signature: 'vitest crash', solution_code: 'downgrade to vitest 1.2', content: 'vitest 1.3 UI 崩溃需降级', summary: 'vitest downgrade', importance: 3, status: 'verified', topics: ['vitest', '测试', '框架', '崩溃', 'crash', 'UI'] },
+  { id: 'mem_auth_jwt', tier: 'semantic', category: 'correction', scope: 'global', entity_key: 'correction.auth', content: '用户纠正：wrong, we use JWT\n修正后的行为：auth 一律 JWT', summary: '纠错: auth 用 JWT', importance: 4.5, status: 'verified', topics: ['auth', '认证', 'jwt', 'token', '登录'] },
+  { id: 'mem_auth_refresh', tier: 'semantic', category: 'architecture', entity_key: 'auth.refresh', content: 'token 刷新端点是 /auth/refresh，滑动过期 7 天', summary: 'refresh endpoint 7d', importance: 4, status: 'verified', topics: ['auth', '认证', 'token', '刷新', 'refresh', '过期'] },
+  { id: 'mem_rel_beta', tier: 'procedural', category: 'workflow', entity_key: 'workflow.release_beta', solution_code: 'pnpm version prerelease && pnpm publish --tag beta', content: 'beta 发布两步走', summary: 'beta release steps', importance: 4, status: 'verified', topics: ['发布', 'beta', '预发布', '版本', 'publish'] },
+  { id: 'mem_rel_prod', tier: 'procedural', category: 'workflow', entity_key: 'workflow.release_prod', solution_code: 'pnpm publish --tag latest && git tag v*', content: '正式发布要打 git tag', summary: 'prod release + tag', importance: 4, status: 'verified', topics: ['发布', '正式', 'git', 'tag', '版本', '生产'] },
+  { id: 'mem_ci_green', tier: 'semantic', category: 'rule', scope: 'global', entity_key: 'ci.merge', content: 'CI 全绿才能合并分支', summary: 'ci green merge', importance: 4, status: 'verified', topics: ['ci', '流水线', '合并', 'merge', '构建'] },
+  { id: 'mem_ci_flaky', tier: 'semantic', category: 'rule', scope: 'global', entity_key: 'ci.flaky_policy', content: 'CI 上的 flaky 测试先 quarantine 再修', summary: 'flaky quarantine', importance: 3.5, status: 'verified', topics: ['ci', '流水线', 'flaky', '测试', '隔离', 'quarantine'] },
+  { id: 'mem_doc_zh', tier: 'semantic', category: 'preference', scope: 'global', entity_key: 'docs.lang', content: '面向用户的文档与回复使用中文', summary: 'docs in chinese', importance: 4, status: 'verified', topics: ['文档', 'docs', '中文', '语言', '文案'] },
+  { id: 'mem_doc_adr', tier: 'semantic', category: 'architecture', entity_key: 'docs.adr', content: '架构决策必须补 ADR 到 docs/adr/', summary: 'adr required', importance: 3.5, status: 'verified', topics: ['文档', 'docs', 'adr', '架构决策', '流程'] },
+  { id: 'mem_ts_strict', tier: 'semantic', category: 'rule', scope: 'global', entity_key: 'ts.strict', content: 'strictNullChecks 必须开启', summary: 'strict nulls', importance: 4, status: 'verified', topics: ['typescript', 'ts', 'strict', '类型', '配置'] },
+  { id: 'mem_ts_path', tier: 'semantic', category: 'architecture', entity_key: 'ts.paths', content: '路径别名统一 @/ 指向 src/', summary: 'alias @/ src', importance: 3, status: 'verified', topics: ['typescript', 'ts', '路径别名', 'alias', '配置', '模块'] }
 ];
 
 const QUESTIONS = [
@@ -110,7 +119,12 @@ async function rewriteQuery(query) {
 const retriever = new HybridRetriever(store, DEFAULT_CONFIG.retrieval, REWRITE && API_KEY ? rewriteQuery : undefined);
 
 for (const item of CORPUS) {
-  await store.createMemory(item);
+  const { topics, ...seed } = item;
+  // Simulate the L2 write-side topic completion: without --topics, memories
+  // carry only the L1 deterministic derivation (same technical terms as the
+  // body); with --topics they additionally carry the LLM's synonym bridge
+  // words (测试/文档/配置/发布 …) that close the cold-vocabulary gap.
+  await store.createMemory(WITH_TOPICS ? { ...seed, topic_keywords: topics } : seed);
 }
 
 const embedMode = store.getEmbeddingAdapter().mode;
@@ -143,8 +157,9 @@ const report = {
   corpus: CORPUS.length,
   questions: QUESTIONS.length,
   embeddingMode: embedMode,
+  writeSideTopics: WITH_TOPICS,
   queryRewrite: REWRITE && !!API_KEY,
-  engine: `HybridRetriever multi-hop coverage (${embedMode}${REWRITE && API_KEY ? ' + flash query-rewrite' : ''})`,
+  engine: `HybridRetriever multi-hop coverage (${embedMode}${WITH_TOPICS ? ' + write-side topics' : ''}${REWRITE && API_KEY ? ' + flash query-rewrite' : ''})`,
   ...Object.fromEntries(
     [...Object.entries(coverage), ...Object.entries(anyCoverage)].map(([k, v]) => [
       k,
@@ -155,7 +170,7 @@ const report = {
 };
 
 console.log(`Long-memory mini benchmark — ${report.questions} multi-hop questions over ${report.corpus} memories`);
-console.log(`embedding=${embedMode}  rewrite=${report.queryRewrite}\n`);
+console.log(`embedding=${embedMode}  write-side-topics=${report.writeSideTopics}  rewrite=${report.queryRewrite}\n`);
 for (const k of ks) {
   console.log(`  both-gold@${k} = ${report[`both-gold@${k}`].toFixed(2)}   any-gold@${k} = ${report[`any-gold@${k}`].toFixed(2)}`);
 }

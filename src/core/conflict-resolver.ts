@@ -1,4 +1,4 @@
-import { MemoryStore } from '../storage/db.js';
+import { MemoryStore, mapRowToRecord } from '../storage/db.js';
 import { MemoryCreateInput, MemoryRecord } from '../types/memory.js';
 
 export type ConflictResolutionAction = 'ADD' | 'UPDATE' | 'OVERWRITE' | 'IGNORE';
@@ -27,8 +27,8 @@ export class ConflictResolver {
           AND (scope = 'global' OR origin_cwd IS NULL OR origin_cwd = '*' OR origin_cwd = ?)
         LIMIT 1
       `);
-      const existing = stmt.get(scope, pathPattern, input.entity_key, now, process.cwd()) as MemoryRecord | undefined;
-
+      const raw = stmt.get(scope, pathPattern, input.entity_key, now, process.cwd()) as MemoryRecord | undefined;
+      const existing = raw ? mapRowToRecord(raw) : undefined;
       if (existing) {
         // Compare content within the exact same scope & path_pattern
         if (this.isIdentical(existing.content, input.content)) {
