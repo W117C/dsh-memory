@@ -84,8 +84,11 @@
 ## 📦 安装
 
 ```sh
-# 在目标 profile 中安装本插件（dsh 官方插件管理通道，转发 pnpm）
+# npm（发布后）：
 dsh plugin --profile web add @dsh-plugins/memory
+
+# npm 发布前，从 GitHub 源安装（tag 或分支均可）：
+dsh plugin --profile web add "github:W117C/dsh-memory#v2.4.0"
 ```
 
 安装后 profile 的 `dsh.profile.bundles` 列出本包，composer 通过包内 `dsh.bundle.patch`（`cordis.patch.yml`）挂载宿主行；浏览器半体无需单独配置——client-modules 扫描到 `dsh.client` 声明后自动进入 Web UI。随后 `dsh web` 打开的界面中，Settings 内即出现「记忆系统 / Memory」面板。
@@ -133,7 +136,7 @@ dsh plugin --profile web add @dsh-plugins/memory
 ## 🧪 测试与构建
 
 ```bash
-pnpm test         # 71 项测试：真实 @deepseek-ai/cordis@4 运行时集成 + 合并引擎/历史/图谱/可携带性
+pnpm test         # 95 项测试：真实 @deepseek-ai/cordis@4 运行时集成 + 合并引擎/历史/图谱/投影/作用域/改写/编排面
 pnpm build        # tsc 宿主产物 + esbuild 浏览器 bundle（CJS 工厂包装）
 pnpm typecheck    # 宿主与 client 双 tsconfig 类型检查
 ```
