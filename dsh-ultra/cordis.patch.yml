@@ -1,0 +1,7 @@
+# Installs the dsh-ultra plugin row into the composed configuration when a
+# profile lists this bundle (`dsh plugin add`). The row name references the
+# package; the loader resolves its exported function plugin
+# (`name`/`inject`/`Config`/`apply`) from the package entry point.
+- insert:
+    - id: ultra-effort
+      name: dsh-ultra

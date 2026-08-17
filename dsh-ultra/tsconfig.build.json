@@ -1,0 +1,19 @@
+{
+  // Build configuration: emits ESM + declarations to `lib/` from `src/` only.
+  // Used by `pnpm build` and, after a git install, by the `prepare` script
+  // (must stay self-contained — no project references, no harness context).
+  // `paths` is cleared back to node_modules so the emitted program stays
+  // within `src` and never pulls the harness source (which would violate
+  // `rootDir`); type-only imports still resolve from the built `.d.ts`.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "lib",
+    "rootDir": "src",
+    "paths": {}
+  },
+  "include": ["src"]
+}

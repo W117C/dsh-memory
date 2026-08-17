@@ -1,0 +1,31 @@
+# Local-development workspace: resolves every `@deepseek-ai/*` dependency
+# (workspace:^) against the DeepSeek Harness checkout that this package
+# develops against. Keep this file out of any published artifact; the bundle
+# itself ships only lib/ + cordis.patch.yml.
+packages:
+  - .
+  - ../deepseek-harness/vendor/*
+  - ../deepseek-harness/packages/*/*
+  - ../deepseek-harness/native/landlock-run
+  - ../deepseek-harness/native/landlock-run/packages/*
+  - ../deepseek-harness/apps/*
+  - ../deepseek-harness/website
+  - ../deepseek-harness/examples
+  - ../deepseek-harness/python/sdk-runtime
+
+linkWorkspacePackages: true
+
+overrides:
+  '@deepseek-ai/cosmokit': 'link:../deepseek-harness/vendor/cosmokit'
+  '@deepseek-ai/schemastery': 'link:../deepseek-harness/vendor/schemastery'
+
+# Mirrors the harness policy for build scripts in the dependency closure (see
+# deepseek-harness/pnpm-workspace.yaml): explicitly allowed scripts run, and
+# the two pi-ai-transitive scripts are reviewed-and-denied.
+allowBuilds:
+  esbuild: true
+  lefthook: true
+  node-pty: true
+  koffi: true
+  '@google/genai': false
+  protobufjs: false

@@ -1,0 +1,23 @@
+{
+  // Extends the harness base compiler settings (strict, ES2024, bundler
+  // resolution). Typechecking resolves @deepseek-ai/* from the built `.d.ts`
+  // in node_modules (see the cleared `paths` below); vitest maps them to
+  // harness source at runtime via vitest.config.ts.
+  "extends": "../deepseek-harness/tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": "../deepseek-harness",
+    // Typechecking resolves @deepseek-ai/* types from node_modules against the
+    // harness packages' built `.d.ts` (paths cleared; source-path mapping would
+    // pull vendored sources compiled under different strict options into this
+    // program). Runtime resolution for tests is handled in vitest.config.ts.
+    "paths": {},
+    "composite": false,
+    "incremental": false,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false,
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["src", "tests"]
+}
